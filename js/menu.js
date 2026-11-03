@@ -52,6 +52,7 @@ const ACTIONS = [
   { id: 'outline', menu: 'beginner', icon: '☰', label: ['目次 (変数・メソッドの一覧)', 'Outline (variables and methods)'], run: () => showPanel('outline') },
   { id: 'help', menu: 'beginner', icon: '❓', label: ['選んだブロックの説明', 'Help for the selected block'], run: () => showPanel('help') },
   { id: 'hints', menu: 'beginner', icon: '💡', label: ['ヒントを見る', 'Show hints'], run: () => showPanel('hints') },
+  { id: 'ai', menu: 'beginner', icon: '✨', label: ['AI アシスタント', 'AI assistant'], run: () => setAiOpen(!ai.open), checked: () => ai.open },
   { id: 'setup', menu: 'beginner', icon: '🧭', label: ['初期設定 (質問に答えて画面を合わせる)', 'Setup (answer questions to fit the screen)'], run: () => openSetup() },
   { id: 'minimap', menu: 'settings', icon: '🗺', label: ['ミニマップを表示', 'Show minimap'], run: () => setMinimap(!layout.minimap), checked: () => layout.minimap },
   { id: 'welcome', menu: 'beginner', icon: '👋', label: ['はじめての案内', 'Welcome guide'], run: () => openWelcome() },

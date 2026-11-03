@@ -1,7 +1,12 @@
 // アプリのバージョン (ここだけを書き換える)。画面の表示・オフライン用キャッシュの名前・リリースのタグ名の確認に使う
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 // 新しくなった点 (更新したあとに 1 回だけ表示する)。新しい版を上に足していく
 const CHANGES = {
+  '1.16.0': [
+    ['AI アシスタント (右下の ✨): 自分のパソコンで動く無料の AI (Ollama) に、コードやエラーについて質問したり、機能の追加やブロックの作成を頼んだりできます', 'AI assistant (✨ at the bottom right): ask a free AI running on your own computer (Ollama) about code and errors, or have it add features and create blocks'],
+    ['「AI をインストール」で導入手順 (Windows / Mac / Linux)。「説明をもっとわかりやすく」で簡易説明 (かんたんモードでは最初から)', '"Install the AI" shows setup steps (Windows / Mac / Linux), with a simpler explanation mode (on by default in beginner mode)'],
+    ['範囲選択でブロックやコードを強調して質問。画像・ファイルの添付、AI の提案の比較と反映 (取り消し可)', 'Highlight blocks or code by selecting an area; attach images and files; compare and apply AI suggestions (undoable)'],
+  ],
   '1.15.0': [
     ['チュートリアルの手順で、使うブロックを名前ではなくブロックの絵で表示 (ホバーで説明の文、クリックでそのカテゴリを開く)', 'Tutorial steps show the blocks to use as pictures (hover for the wording, click to open the category)'],
     ['「ランダムな数」「ランダムに 1 つ選ぶ」で、最初の手順が次の手順のブロックを入れるまで進めなかったのを修正', 'Fixed the first step of "Random numbers" and "Pick one at random" not passing until the next step was done'],

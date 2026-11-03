@@ -565,6 +565,67 @@ async function layoutTests(browser, base) {
   await ctx.close();
 }
 
+async function aiTests(browser, base) {
+  console.log('\n[ja] AI アシスタント (Ollama の代わりのテスト用サーバー)');
+  const mock = require('./mock-ollama.js'), srv = mock();
+  await new Promise(ok => srv.listen(0, '127.0.0.1', ok));
+  const url = `http://127.0.0.1:${srv.address().port}`;
+  // つながらないとき: 導入手順 (かんたんモードなら、最初から簡易説明)
+  const p0 = await open(browser, base, 'ja', { 'unity-block-coder-ai': JSON.stringify({ url: 'http://127.0.0.1:9' }), 'unity-block-coder-beginner': '1' });
+  await p0.click('#aiFab'); await p0.waitForSelector('.ai-offline');
+  check('AI につながらないときは「AI をインストール」が出る', true);
+  await p0.click('.ai-offline [data-ai="guide"]');
+  check('導入手順が出て、かんたんモードでは最初から簡易説明になる', await p0.evaluate(() => document.querySelector('.ai-guide').classList.contains('simple') && document.querySelectorAll('.ai-step').length >= 3 && document.querySelectorAll('.ai-cmd').length >= 2));
+  await p0.click('.ai-guide [data-ai="simple"]');
+  check('「ふつうの説明」に切り替えられる', await p0.evaluate(() => !document.querySelector('.ai-guide').classList.contains('simple')));
+  await p0.click('.ai-guide [data-os="win"]');
+  check('Windows の手順に切り替えると、このサイトを許可するコマンドが出る', await p0.evaluate(() => [...document.querySelectorAll('.ai-cmd code')].some(c => c.textContent === `setx OLLAMA_ORIGINS "${location.origin}"`)));
+  check('テスト中にエラーがない (導入手順)', !p0.errors.length, p0.errors.join(' / '));
+  await p0.context().close();
+
+  const p = await open(browser, base, 'ja', { 'unity-block-coder-ai': JSON.stringify({ url }) });
+  await p.click('#aiFab');
+  await p.waitForFunction(() => ai.connected);
+  check('AI (Ollama) につながり、モデルの一覧が出る', await p.evaluate(() => ai.models.length === 2 && aiCfg.model === 'qwen2.5-coder:7b' && document.querySelectorAll('#aiModel option').length === 2));
+  await p.waitForTimeout(300);   // 開くときのアニメーション (0.2 秒) を待つ
+  check('右からチャット画面が出て、画面が左に寄る', await p.evaluate(() => document.getElementById('aiPanel').classList.contains('open') && document.querySelector('main').getBoundingClientRect().right <= innerWidth - 400));
+  await p.fill('#aiText', 'ジャンプできるようにして'); await p.keyboard.press('Enter');
+  await p.waitForFunction(() => !ai.busy);
+  const sent = mock.last.messages;
+  check('AI に今のコードとエラーと質問を渡す (システムの指示つき)', sent[0].role === 'system' && /\[PlayerController\.cs\]/.test(sent.at(-1).content) && /ジャンプできるようにして$/.test(sent.at(-1).content));
+  check('答えの C# に「変更点を見る」「反映」ボタンが付く', await p.evaluate(() => !!document.querySelector('#aiPanel [data-code="diff"]') && /PlayerController\.cs に反映/.test(document.querySelector('#aiPanel [data-code="apply"]').textContent)));
+  await p.click('#aiPanel [data-code="diff"]');
+  check('AI の提案の変更点を比較できる', await p.evaluate(() => diffDlg.open && document.querySelectorAll('#diffDlg .df.add').length > 3));
+  await p.evaluate(() => diffDlg.close());
+  await p.click('#aiPanel [data-code="apply"]'); await p.waitForTimeout(150);
+  check('AI の提案を反映できる', await p.evaluate(() => code.includes('rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);')));
+  await p.waitForTimeout(100); await p.evaluate(() => ws.undo(false));
+  check('反映は取り消しで元に戻せる', await p.evaluate(() => { update(); return !code.includes('jumpPower'); }));
+  // 範囲選択
+  await p.click('#aiPanel [data-ai="select"]');
+  const r = await p.evaluate(() => { const b = ws.getAllBlocks(false).find(x => x.type === 'controls_if').getSvgRoot().getBoundingClientRect(); return { x: b.left - 4, y: b.top - 4, x2: Math.min(b.right + 4, document.getElementById('left').getBoundingClientRect().right - 4), y2: b.bottom + 4 }; });
+  await p.mouse.move(r.x, r.y); await p.mouse.down(); await p.mouse.move(r.x2, r.y2, { steps: 5 }); await p.mouse.up();
+  check('範囲選択で囲んだブロックが強調され、選択中と表示される', await p.evaluate(() => ai.sel?.blocks.length === 1 && document.querySelectorAll('.ubc-ai-sel').length === 1 && !!document.querySelector('.ai-chip.sel')));
+  await p.fill('#aiText', 'これは何？'); await p.keyboard.press('Enter'); await p.waitForFunction(() => !ai.busy);
+  check('選択範囲を AI に優先して渡す', /\[選択範囲/.test(mock.last.messages.at(-1).content) && /if \(Input\.GetKeyDown/.test(mock.last.messages.at(-1).content.split('[エラー')[0]));
+  await p.click('.ai-chip.sel [data-ai="unselect"]');
+  check('選択を外せる', await p.evaluate(() => !ai.sel && !document.querySelector('.ubc-ai-sel')));
+  // 拡張パック・JavaScript
+  await p.fill('#aiText', '足りないブロックを追加して'); await p.keyboard.press('Enter'); await p.waitForFunction(() => !ai.busy);
+  await p.click('#aiPanel [data-code="pack"]'); await p.waitForTimeout(150);
+  check('AI が作ったブロック (拡張パック) を追加できる', await p.evaluate(() => !!PACK_BLOCKS.ai_shake_cam && toolbox.contents.find(c => c.name === 'Unity').contents.some(i => i.type === 'ai_shake_cam')));
+  await p.fill('#aiText', 'js を作って'); await p.keyboard.press('Enter'); await p.waitForFunction(() => !ai.busy);
+  check('JavaScript はダウンロードだけ (実行のボタンはない)', await p.evaluate(() => { const last = [...document.querySelectorAll('.ai-msg.bot')].at(-1); return !!last.querySelector('[data-code="download"]') && !last.querySelector('[data-code="apply"], [data-code="pack"]'); }));
+  // 添付
+  await p.evaluate(() => aiAttachFiles([new File(['public class X {}'], 'X.cs', { type: 'text/plain' })]));
+  check('ファイルを添付できる', await p.evaluate(() => ai.attach.length === 1 && /X\.cs/.test(document.getElementById('aiChips').textContent)));
+  await p.fill('#aiText', '添付を見て'); await p.keyboard.press('Enter'); await p.waitForFunction(() => !ai.busy);
+  check('添付したファイルの中身を AI に渡す', /添付ファイル: X\.cs[\s\S]*public class X \{\}/.test(mock.last.messages.at(-1).content));
+  check('テスト中にエラーがない (AI)', !p.errors.length, p.errors.join(' / '));
+  await p.context().close();
+  srv.close();
+}
+
 (async () => {
   const server = await serve(), base = `http://127.0.0.1:${server.address().port}`;
   const browser = await chromium.launch();
@@ -574,6 +635,7 @@ async function layoutTests(browser, base) {
     await qolTests(browser, base);
     await toolTests(browser, base);
     await layoutTests(browser, base);
+    await aiTests(browser, base);
   } catch (e) { failed++; console.log('  ✖ ' + e.stack); if (process.env.GITHUB_ACTIONS) console.log(`::error title=テストが止まりました::${String(e.stack).replace(/\n/g, ' ').slice(0, 900)}`); }
   await browser.close(); server.close();
   fs.rmSync(tmp, { recursive: true, force: true });
