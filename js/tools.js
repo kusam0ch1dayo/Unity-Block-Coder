@@ -215,8 +215,9 @@ function recentCategory() {
 }
 
 // ---------- ブロックを画像で保存 (SVG / PNG) ----------
-function blocksSvg(only) {
-  const parent = ws.getParentSvg(), node = only ? only.getSvgRoot() : ws.getCanvas(), pad = 12, clone = node.cloneNode(true);
+// workspace: 描いている作業場所 (チュートリアルのブロックの絵は、見えない別の作業場所で描く)
+function blocksSvg(only, workspace = ws, pad = 12) {
+  const parent = workspace.getParentSvg(), node = only ? only.getSvgRoot() : workspace.getCanvas(), clone = node.cloneNode(true);
   clone.removeAttribute('transform');
   // 1 つのブロックだけのときは、下につながっているブロックを外す (大きさもそのブロックだけ)
   const next = only && only.getNextBlock();
@@ -228,7 +229,7 @@ function blocksSvg(only) {
   // CSS はレンダラーとテーマのクラス (作業場所の外側の要素に付いている) の下に書かれているので、そのクラスも付ける
   const css = [...document.styleSheets].filter(s => !s.href).flatMap(s => { try { return [...s.cssRules].map(r => r.cssText); } catch (e) { return []; } })
     .filter(t => /blockly|zelos/i.test(t)).join('\n');
-  const classes = [ws.getInjectionDiv().className, parent.getAttribute('class')].join(' ');
+  const classes = [workspace.getInjectionDiv().className, parent.getAttribute('class')].join(' ');
   const w = Math.ceil(box.width + pad * 2), h = Math.ceil(box.height + pad * 2);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="${box.x - pad} ${box.y - pad} ${w} ${h}">`
     + `<style>${css.replace(/</g, '\\3c ')}</style>${parent.querySelector('defs')?.outerHTML || ''}`

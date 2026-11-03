@@ -1,7 +1,11 @@
 // アプリのバージョン (ここだけを書き換える)。画面の表示・オフライン用キャッシュの名前・リリースのタグ名の確認に使う
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 // 新しくなった点 (更新したあとに 1 回だけ表示する)。新しい版を上に足していく
 const CHANGES = {
+  '1.15.0': [
+    ['チュートリアルの手順で、使うブロックを名前ではなくブロックの絵で表示 (ホバーで説明の文、クリックでそのカテゴリを開く)', 'Tutorial steps show the blocks to use as pictures (hover for the wording, click to open the category)'],
+    ['「ランダムな数」「ランダムに 1 つ選ぶ」で、最初の手順が次の手順のブロックを入れるまで進めなかったのを修正', 'Fixed the first step of "Random numbers" and "Pick one at random" not passing until the next step was done'],
+  ],
   '1.14.0': [
     ['チュートリアルを 43 レッスンに (6 → 43)。ジャンル (10 種類) ごとのリストで、基礎・中級・応用のレベル付き', 'Tutorials grew from 6 to 43 lessons, listed by 10 genres with Basic / Intermediate / Advanced levels'],
     ['ジャンルごとの進み具合、次のおすすめレッスン、各レッスンの「答えを見る」', 'Progress per genre, a recommended next lesson and "Show answer" in every lesson'],

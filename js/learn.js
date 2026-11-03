@@ -204,6 +204,67 @@ function openCategory(name) {
   const box = ws.getToolbox(), item = box.getToolboxItems().find(it => it.getName && it.getName() === tr(name));
   if (item) box.setSelectedItem(item);
 }
+// ---------- チュートリアルの文の中のブロックの絵 ----------
+// 文の [[種類|元の文]] をブロックの絵にする (ホバーで元の文)。種類のあとに ;欄=値 や ;@入力=var:名前 / text:文字 / num:数 を書ける
+const TUT_PRESETS = {
+  if_space: { type: 'controls_if', inputs: { IF0: { block: { type: 'input_key', fields: { MODE: 'GetKeyDown', KEY: 'Space' } } } } },
+  if_key: { type: 'controls_if', inputs: { IF0: { block: { type: 'input_key', fields: { MODE: 'GetKeyDown', KEY: 'R' } } } } },
+  if_timer: { type: 'controls_if', inputs: { IF0: { block: { type: 'logic_compare', fields: { OP: 'LTE' }, inputs: { A: { block: { type: 'var_get', fields: { NAME: 'timer' } } }, B: { block: { type: 'math_number', fields: { NUM: 0 } } } } } } } },
+  if_else: { type: 'controls_if', extraState: { hasElse: true } },
+};
+const tutImages = new Map();
+let tutWs = null;
+function toolboxItem(type) {
+  const walk = list => { for (const c of list || []) { if (c.kind === 'block' && c.type === type) return c; const r = c.contents && walk(c.contents); if (r) return r; } return null; };
+  return walk(toolbox.contents);
+}
+function tutBlockJson(spec) {
+  if (spec.startsWith('preset:')) return TUT_PRESETS[spec.slice(7)];
+  const [type, ...opts] = spec.split(';'), base = toolboxItem(type);
+  if (!Blockly.Blocks[type]) return null;
+  const json = { type, fields: { ...(base?.fields || {}) }, inputs: JSON.parse(JSON.stringify(base?.inputs || {})) };
+  for (const o of opts) {
+    const [k, v] = o.split('='), [kind, ...rest] = (v || '').split(':'), val = rest.join(':');
+    if (k.startsWith('@')) json.inputs[k.slice(1)] = { block: kind === 'var' ? { type: 'var_get', fields: { NAME: val } } : kind === 'num' ? { type: 'math_number', fields: { NUM: +val } } : { type: 'text', fields: { TEXT: val } } };
+    else json.fields[k] = v;
+  }
+  return json;
+}
+// ブロックの絵 (SVG の data URL)。テーマが変わったら描き直す
+function tutBlockImage(spec) {
+  const key = spec + '|' + ws.getTheme().name;
+  if (tutImages.has(key)) return tutImages.get(key);
+  let img = null;
+  try {
+    const json = tutBlockJson(spec);
+    if (json) {
+      if (!tutWs) {
+        const div = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'tutRender' }));
+        tutWs = Blockly.inject(div, { renderer: 'zelos', readOnly: true, theme: ws.getTheme() });
+      }
+      if (tutWs.getTheme() !== ws.getTheme()) tutWs.setTheme(ws.getTheme());
+      Blockly.Events.disable();
+      try {
+        const b = Blockly.serialization.blocks.append(json, tutWs);
+        Blockly.renderManagement.triggerQueuedRenders(tutWs);
+        const { svg, w, h } = blocksSvg(b, tutWs, 2);
+        b.dispose(false);
+        img = { url: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), w, h };
+      } finally { Blockly.Events.enable(); }
+    }
+  } catch (e) { img = null; }
+  tutImages.set(key, img);
+  return img;
+}
+// 文を HTML にする (ブロックの指定は絵に。描けないときは元の文を太字で)
+function tutText(s) {
+  return s.split(/(\[\[[^\]]*\]\])/).map((part, i) => {
+    if (i % 2 === 0) return esc(part);
+    const [spec, label] = part.slice(2, -2).split('|');
+    const img = tutBlockImage(spec);
+    return img ? `<span class="tut-blk" title="${esc(label)}" data-spec="${esc(spec)}"><img src="${img.url}" alt="${esc(label)}" style="width:${Math.round(img.w * 0.62)}px"></span>` : `<b>${esc(label)}</b>`;
+  }).join('');
+}
 function renderTutor() {
   const el = document.getElementById('tutor');
   if (!tutor) { el.hidden = true; return; }
@@ -211,15 +272,23 @@ function renderTutor() {
   tutor.done = !step.check || step.check(code);
   el.hidden = false;
   el.innerHTML = `<div class="tutor-head"><b>${esc(pick(t.title))}</b><span>${i + 1} / ${t.steps.length}</span><button data-act="close" title="${pick(['終了', 'Close'])}">✕</button></div>`
-    + `<p>${esc(pick(step.text))}</p>`
+    + `<p>${tutText(pick(step.text))}</p>`
     + (step.cat ? `<button data-act="cat">📂 ${pick(['カテゴリを開く', 'Open category'])}: ${esc(tr(step.cat))}</button>` : '')
-    + (step.hint ? `<details><summary>${pick(['ヒントを見る', 'Show hint'])}</summary>${esc(pick(step.hint))}</details>` : '')
+    + (step.hint ? `<details><summary>${pick(['ヒントを見る', 'Show hint'])}</summary>${tutText(pick(step.hint))}</details>` : '')
     + (t.answer ? `<details class="tutor-answer"><summary>${pick(['答えを見る', 'Show answer'])}</summary><pre>${hl(t.answer)}</pre>`
       + `<button data-act="answer">${pick(['答えを新しいタブで開く', 'Open the answer in a new tab'])}</button></details>` : '')
     + `<div class="tutor-foot">${step.check ? (tutor.done ? `<span class="pass">✔ ${pick(['できました！', 'Well done!'])}</span>` : `<span class="wait">${pick(['できたら自動でチェックします…', 'Checked automatically when done…'])}</span>`) : '<span></span>'}`
     + `${i ? `<button data-act="prev">← ${pick(['戻る', 'Back'])}</button>` : ''}<button data-act="next" class="primary" ${tutor.done ? '' : 'disabled'}>${last ? pick(['完了 🎉', 'Finish 🎉']) : pick(['次へ →', 'Next →'])}</button></div>`;
 }
 document.getElementById('tutor').onclick = e => {
+  // ブロックの絵をクリックすると、そのブロックのカテゴリを開く
+  const blk = e.target.closest('.tut-blk');
+  if (blk) {
+    const type = blk.dataset.spec.startsWith('preset:') ? tutBlockJson(blk.dataset.spec).type : blk.dataset.spec.split(';')[0];
+    const cat = toolbox.contents.find(c => (c.contents || []).some(it => it.type === type));
+    if (cat) openCategory(cat.name);
+    return;
+  }
   const act = e.target.closest('[data-act]')?.dataset.act;
   if (!act || !tutor) return;
   if (act === 'close') tutor = null;

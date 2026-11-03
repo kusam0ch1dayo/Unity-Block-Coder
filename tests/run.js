@@ -117,6 +117,28 @@ async function langTests(browser, base, lang) {
     }
     return { bad, n: TUTORIALS.length, ids: new Set(TUTORIALS.map(t => t.id)).size };
   });
+  const imgs = await p.evaluate(() => {
+    const specs = new Set(), bad = [];
+    for (const t of TUTORIALS) for (const st of t.steps) for (const txt of [...st.text, ...(st.hint || [])]) for (const m of txt.matchAll(/\[\[([^|\]]*)\|/g)) specs.add(m[1]);
+    for (const sp of specs) if (!tutBlockImage(sp)) bad.push(sp);
+    return { n: specs.size, bad };
+  });
+  check(`チュートリアルの文のブロックの絵 (${imgs.n} 種類) がすべて描ける`, imgs.n > 40 && !imgs.bad.length, imgs.bad.join(', '));
+  // 値を入れる前の「変数」ブロックだけで、最初の手順に合格できる (次の手順のブロックが要らない)
+  const early = await p.evaluate(() => {
+    const failed = [['random', 'Start', 'int', 'dice'], ['random-pick', 'Start', 'string', 'prize']].filter(([id, ev, type, name]) => {
+    const t = TUTORIALS.find(x => x.id === id);
+    importCs(t.start, false);
+    const evb = ws.getAllBlocks(false).find(b => b.type === 'unity_event' && f(b, 'EVENT') === ev + '()');
+    const v = Blockly.serialization.blocks.append({ type: 'var_local', fields: { TYPE: type, NAME: name } }, ws);
+    evb.getInput('BODY').connection.connect(v.previousConnection);
+    update();
+    return !t.steps.find(s => s.check).check(code);
+    }).map(x => x[0]);
+    document.getElementById('sample').click();   // レッスンの C# (日本語の文字入り) を残さないように戻す
+    return failed;
+  });
+  check('「変数」ブロックを入れた時点で次へ進める (値は次の手順で入れる)', !early.length, early.join(', '));
   check(`レッスン (${lessons.n} 個) の答えはすべての手順に合格し、エラーがない`, lessons.n >= 40 && lessons.ids === lessons.n && !lessons.bad.length, lessons.bad.join(' / '));
 
   if (lang === 'en') {
@@ -436,6 +458,9 @@ async function toolTests(browser, base) {
   await ev(() => document.querySelector('#learnBody .lg-item').click()); await p.waitForTimeout(200);
   await ev(() => document.querySelector('#tutor [data-act="answer"]').click()); await p.waitForTimeout(200);
   check('レッスンの「答えを新しいタブで開く」で答えのブロックが開く (今のタブはそのまま)', await ev(() => project.files.length >= 2 && !document.getElementById('tutor').hidden && JSON.stringify(project.files.at(-1).state).includes('timer')));
+  check('手順の文のブロックは絵で表示され、ホバーで元の文が出る', await ev(() => { tutor.i = 0; renderTutor(); const b = document.querySelector('#tutor .tut-blk'); return !!b && !!b.querySelector('img[src^="data:image/svg+xml"]') && /代入/.test(b.title); }));
+  await ev(() => document.querySelector('#tutor .tut-blk').click());
+  check('ブロックの絵をクリックすると、そのカテゴリが開く', await ev(() => ws.getToolbox().getSelectedItem()?.getName() === '変数'));
   await ev(() => { tutor = null; renderTutor(); });
   check('Unity のエラー (コンパイル・実行時) を読み取って説明する', await ev(() => parsedErrors.map(x => x.code + '@' + x.line).join(',') === 'CS0103@26,NullReferenceException@27' && document.querySelectorAll('#ueList .ue-help').length === 2));
   await ev(() => document.querySelector('[data-ue=go]').click());

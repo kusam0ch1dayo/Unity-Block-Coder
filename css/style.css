@@ -410,3 +410,10 @@ kbd { font: 11.5px ui-monospace, Consolas, monospace; padding: 2px 7px; border: 
 @media (max-width: 640px) { .lg { grid-template-columns: 1fr; } .lg-genres { flex-direction: row; overflow-x: auto; } .lg-genres button { min-width: 140px; } }
 .tutor-answer pre { max-height: 220px; overflow: auto; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 8px 10px; font-size: 12px; margin: 6px 0; }
 .tutor-answer button { font-size: 12px; }
+
+/* チュートリアルの文の中のブロックの絵 */
+#tutRender { position: absolute; left: -10000px; top: 0; width: 800px; height: 600px; visibility: hidden; }
+.tut-blk { display: inline-block; vertical-align: middle; margin: 2px 2px; cursor: pointer; line-height: 0; border-radius: 6px; transition: transform .1s; }
+.tut-blk:hover { transform: scale(1.04); filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .2)); }
+.tut-blk img { max-width: 100%; height: auto; }
+#tutor { width: min(400px, calc(100% - 32px)); }
