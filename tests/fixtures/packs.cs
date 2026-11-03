@@ -1,6 +1,6 @@
 using UnityEngine;
-using UnityEngine.AI;
 using UnityEngine.InputSystem;
+using UnityEngine.AI;
 
 public class Chaser : MonoBehaviour
 {

@@ -1,7 +1,12 @@
 // アプリのバージョン (ここだけを書き換える)。画面の表示・オフライン用キャッシュの名前・リリースのタグ名の確認に使う
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.17.0';
 // 新しくなった点 (更新したあとに 1 回だけ表示する)。新しい版を上に足していく
 const CHANGES = {
+  '1.17.0': [
+    ['入力ブロックを新しい Input System (Keyboard.current / Mouse.current) にそろえました。キー・マウスのボタン・キーの軸 (A / D・W / S・矢印)・マウスの位置', 'Input blocks now use the new Input System (Keyboard.current / Mouse.current): keys, mouse buttons, key axes (A / D, W / S, arrows) and mouse position'],
+    ['昔の書き方 (Input.GetKeyDown・GetAxis・GetButton・GetMouseButton・Input.mousePosition) の C# は、読み込むと新しい書き方に置き換わります。前に保存したブロックもそのまま新しい C# になります', 'Old-style C# (Input.GetKeyDown, GetAxis, GetButton, GetMouseButton, Input.mousePosition) is converted on import; saved blocks also produce the new C#'],
+    ['テンプレート・サンプル・チュートリアルも新しい Input System に。Unity では Package Manager で Input System を入れて使います', 'Templates, the sample and tutorials use the new Input System too. Install the Input System package in Unity'],
+  ],
   '1.16.0': [
     ['AI アシスタント (右下の ✨): 自分のパソコンで動く無料の AI (Ollama) に、コードやエラーについて質問したり、機能の追加やブロックの作成を頼んだりできます', 'AI assistant (✨ at the bottom right): ask a free AI running on your own computer (Ollama) about code and errors, or have it add features and create blocks'],
     ['「AI をインストール」で導入手順 (Windows / Mac / Linux)。「説明をもっとわかりやすく」で簡易説明 (かんたんモードでは最初から)', '"Install the AI" shows setup steps (Windows / Mac / Linux), with a simpler explanation mode (on by default in beginner mode)'],

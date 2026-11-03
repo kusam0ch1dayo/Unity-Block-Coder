@@ -103,7 +103,7 @@ addBlocks('ロジック', [{ type: 'is_type', inputs: { VALUE: vget('other') } }
 addBlocks('数値・文字', ['math_const', 'interp_string', { type: 'to_string_fmt', inputs: { VALUE: { block: { type: 'time_value', fields: { PROP: 'time' } } } } },
   { type: 'string_check', inputs: { VALUE: vget('playerName') } }, { type: 'parse_num', inputs: { VALUE: txt('10') } }, { type: 'cast_any', inputs: { VALUE: tget('right') } }]);
 addBlocks('リスト', ['array_init']);
-addBlocks('Unity', [{ type: 'input_button' }, { type: 'vector2_new', inputs: { X: num(0), Y: num(0) } }, 'vector2_const',
+addBlocks('Unity', [{ type: 'vector2_new', inputs: { X: num(0), Y: num(0) } }, 'vector2_const',
   { type: 'quaternion_lerp', inputs: { A: tget('rotation'), B: vget('targetRotation'), T: { block: { type: 'time_value' } } } },
   { type: 'quaternion_look', inputs: { DIR: blk('vector3_const', { DIR: 'forward' }) } }, { type: 'quaternion_axis', inputs: { ANGLE: num(90), AXIS: blk('vector3_const', { DIR: 'up' }) } },
   { type: 'color_new', inputs: { R: num(1), G: num(1), B: num(1), A: num(1) } }]);

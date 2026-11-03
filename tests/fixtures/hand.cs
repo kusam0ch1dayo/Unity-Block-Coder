@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using System.Linq;
 
@@ -26,11 +27,11 @@ namespace Game
         // 毎フレーム
         void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 audioSource.PlayOneShot(shotClip);
                 animator.SetTrigger("Shoot");
-                if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit hit, range))
+                if (Physics.Raycast(Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue()), out RaycastHit hit, range))
                 {
                     if (hit.collider.CompareTag("Enemy"))
                     {

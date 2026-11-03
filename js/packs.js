@@ -73,7 +73,7 @@ function registerPack(pack, user = false) {
       names.push(name);
       return inputs[name] ? '(.+?)' : fields[name].options ? `(${fields[name].options.map(o => reEsc(String(Array.isArray(o) ? o[1] : o))).join('|')})` : '([^"]*?)';
     }).join('') + '$';
-    PACK_BLOCKS[blk.type] = { ...blk, pack: pack.id, isValue, re: new RegExp(pattern), names };
+    PACK_BLOCKS[blk.type] = { ...blk, pack: pack.id, isValue, re: blk.hidden ? /(?!)/ : new RegExp(pattern), names };
     HELP[blk.type] = { name: packPair(blk.name || blk.type), desc: packPair(blk.help || ''), ...(blk.docs ? { u: blk.docs } : {}) };
   }
   Blockly.defineBlocksWithJsonArray(withHelp(defs));
@@ -89,6 +89,7 @@ function registerPack(pack, user = false) {
   };
   const own = [];
   for (const blk of pack.blocks) {
+    if (blk.hidden) continue;   // 前の版で保存したプロジェクトを開くためだけに残しているブロック (道具箱に出さない)
     const into = intoCat(blk.into || pack.category?.into);
     if (!into) { own.push(item(blk)); continue; }
     into.contents = into.contents.filter(it => it.type !== blk.type);   // 読み込み直したときに重ならないように

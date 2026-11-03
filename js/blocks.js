@@ -31,9 +31,31 @@ const TF_SET = ['position', 'localPosition', 'rotation', 'localRotation', 'euler
 const TF_GET = ['position', 'localPosition', 'rotation', 'localRotation', 'eulerAngles', 'localEulerAngles', 'localScale', 'lossyScale',
   'forward', 'right', 'up', 'parent', 'childCount'];
 // 値ブロック「unity_value」で選べる値とその型
-const UNITY_VALUES = { 'Input.mousePosition': 'Vector3', 'Camera.main': 'Camera', 'Screen.width': 'int', 'Screen.height': 'int', 'Input.anyKey': 'bool',
-  'Input.anyKeyDown': 'bool', 'Input.touchCount': 'int', 'Random.value': 'float', 'Random.insideUnitCircle': 'Vector2', 'Random.insideUnitSphere': 'Vector3',
+// (入力の 3 つは、前の版で保存したブロックがそのまま開けるように、内部の値だけ昔の名前のまま。C# は新しい Input System で書く)
+const UNITY_VALUES = { 'Input.mousePosition': 'Vector2', 'Camera.main': 'Camera', 'Screen.width': 'int', 'Screen.height': 'int', 'Input.anyKey': 'bool',
+  'Input.anyKeyDown': 'bool', 'Input.touchCount': 'bool', 'Random.value': 'float', 'Random.insideUnitCircle': 'Vector2', 'Random.insideUnitSphere': 'Vector3',
   'Random.rotation': 'Quaternion', 'Time.frameCount': 'int' };
+const UV_CODE = { 'Input.mousePosition': 'Mouse.current.position.ReadValue()', 'Input.anyKey': 'Keyboard.current.anyKey.isPressed',
+  'Input.anyKeyDown': 'Keyboard.current.anyKey.wasPressedThisFrame', 'Input.touchCount': 'Touchscreen.current.primaryTouch.press.isPressed' };
+const uvCode = k => UV_CODE[k] || k;
+// 新しい Input System (UnityEngine.InputSystem) の入力ブロック。値は KeyCode の名前 (保存データの互換のため)、表示と C# は Keyboard.current.〇〇Key
+const INPUT_KEYS = ['Space', 'Return', 'Escape', 'LeftShift', 'LeftControl', 'Tab', 'Backspace', 'W', 'A', 'S', 'D', 'UpArrow', 'DownArrow', 'LeftArrow', 'RightArrow',
+  ...'BCEFGHIJKLMNOPQRTUVXYZ'.split(''), ...'0123456789'.split('').map(d => 'Alpha' + d), 'RightShift', 'RightControl', 'LeftAlt', 'RightAlt'];
+const isKey = k => ({ Return: 'enter', LeftControl: 'leftCtrl', RightControl: 'rightCtrl', KeypadEnter: 'numpadEnter' }[k]
+  || (/^Alpha\d$/.test(k) ? 'digit' + k.slice(5) : k[0].toLowerCase() + k.slice(1))) + 'Key';
+const IS_MODE = { GetKey: 'isPressed', GetKeyDown: 'wasPressedThisFrame', GetKeyUp: 'wasReleasedThisFrame',
+  GetMouseButton: 'isPressed', GetMouseButtonDown: 'wasPressedThisFrame', GetMouseButtonUp: 'wasReleasedThisFrame',
+  GetButton: 'isPressed', GetButtonDown: 'wasPressedThisFrame', GetButtonUp: 'wasReleasedThisFrame' };
+const MOUSE_BTN = { 0: 'leftButton', 1: 'rightButton', 2: 'middleButton' };
+// 軸: 新しい Input System には GetAxis が無いので、キーの値 (0 か 1) の引き算で -1〜1 にする
+const AXIS_CODE = {
+  Horizontal: 'Keyboard.current.dKey.ReadValue() - Keyboard.current.aKey.ReadValue()', Vertical: 'Keyboard.current.wKey.ReadValue() - Keyboard.current.sKey.ReadValue()',
+  HorizontalArrow: 'Keyboard.current.rightArrowKey.ReadValue() - Keyboard.current.leftArrowKey.ReadValue()',
+  VerticalArrow: 'Keyboard.current.upArrowKey.ReadValue() - Keyboard.current.downArrowKey.ReadValue()',
+  'Mouse X': 'Mouse.current.delta.x.ReadValue()', 'Mouse Y': 'Mouse.current.delta.y.ReadValue()', Jump: 'Keyboard.current.spaceKey.ReadValue()' };
+// 昔の Input Manager のボタン名 → 新しい Input System の入力
+const BUTTON_CODE = { Jump: 'Keyboard.current.spaceKey', Fire1: 'Mouse.current.leftButton', Fire2: 'Mouse.current.rightButton', Fire3: 'Mouse.current.middleButton',
+  Submit: 'Keyboard.current.enterKey', Cancel: 'Keyboard.current.escapeKey' };
 const MEMBER = { previousStatement: 'Member', nextStatement: 'Member' };
 const STMT = { previousStatement: null, nextStatement: null };
 
@@ -101,11 +123,12 @@ Blockly.defineBlocksWithJsonArray(withHelp(i18nBlocks([
     args0: [{ type: 'field_dropdown', name: 'DIR', options: ['zero','one','up','down','left','right','forward','back'].map(d => [d, d]) }] },
   { type: 'time_value', message0: 'Time. %1', output: 'Number', colour: C.unity,
     args0: [{ type: 'field_dropdown', name: 'PROP', options: ['deltaTime','time','fixedDeltaTime','timeScale','unscaledDeltaTime'].map(d => [d, d]) }] },
-  { type: 'input_key', message0: 'Input. %1 ( KeyCode. %2 )', output: 'Boolean', colour: C.unity,
-    args0: [{ type: 'field_dropdown', name: 'MODE', options: ['GetKey','GetKeyDown','GetKeyUp'].map(d => [d, d]) },
-            { type: 'field_dropdown', name: 'KEY', options: ['Space','Return','Escape','LeftShift','W','A','S','D','UpArrow','DownArrow','LeftArrow','RightArrow','Mouse0'].map(d => [d, d]) }] },
-  { type: 'input_axis', message0: 'Input. %1 ( %2 )', output: 'Number', colour: C.unity,
-    args0: [{ type: 'field_dropdown', name: 'MODE', options: [['GetAxis', 'GetAxis'], ['GetAxisRaw', 'GetAxisRaw']] }, { type: 'field_dropdown', name: 'AXIS', options: ['Horizontal','Vertical','Mouse X','Mouse Y','Jump'].map(d => [d, d]) }] },
+  { type: 'input_key', message0: 'Keyboard.current. %2 . %1', output: 'Boolean', colour: C.unity,
+    args0: [{ type: 'field_dropdown', name: 'MODE', options: [['wasPressedThisFrame', 'GetKeyDown'], ['isPressed', 'GetKey'], ['wasReleasedThisFrame', 'GetKeyUp']] },
+            { type: 'field_dropdown', name: 'KEY', options: INPUT_KEYS.map(k => [isKey(k), k]) }] },
+  { type: 'input_axis', message0: '%1', output: 'Number', colour: C.unity,
+    args0: [{ type: 'field_dropdown', name: 'AXIS', options: [['左右 (A / D)', 'Horizontal'], ['上下 (W / S)', 'Vertical'], ['左右 (← / →)', 'HorizontalArrow'], ['上下 (↑ / ↓)', 'VerticalArrow'],
+      ['マウスの左右の動き', 'Mouse X'], ['マウスの上下の動き', 'Mouse Y'], ['スペース', 'Jump']].map(([l, v]) => [l + ' の軸', v]) }] },
   { type: 'transform_action', message0: 'transform. %1 ( %2 )', colour: C.unity, ...STMT,
     args0: [{ type: 'field_dropdown', name: 'ACTION', options: [['Translate','Translate'],['Rotate','Rotate'],['LookAt','LookAt']] }, { type: 'input_value', name: 'VEC' }] },
   { type: 'transform_set', message0: 'transform. %1 = %2', colour: C.unity, ...STMT,
@@ -181,9 +204,9 @@ Blockly.defineBlocksWithJsonArray(withHelp(i18nBlocks([
   { type: 'find_object', message0: 'GameObject. %1 ( %2 )', output: null, colour: C.unity,
     args0: [{ type: 'field_dropdown', name: 'FN', options: [['Find','Find'],['FindWithTag','FindWithTag']] }, { type: 'field_input', name: 'NAME', text: 'Player' }] },
   { type: 'add_component', message0: 'AddComponent< %1 >()', output: null, colour: C.unity, args0: [{ type: 'field_ac', ac: 'component', name: 'TYPE', text: 'Rigidbody' }] },
-  { type: 'mouse_button', message0: 'Input. %1 ( %2 )', output: 'Boolean', colour: C.unity,
-    args0: [{ type: 'field_dropdown', name: 'MODE', options: ['GetMouseButton','GetMouseButtonDown','GetMouseButtonUp'].map(d => [d, d]) },
-            { type: 'field_dropdown', name: 'BTN', options: [['0 (左)','0'],['1 (右)','1'],['2 (中)','2']] }] },
+  { type: 'mouse_button', message0: 'Mouse.current. %2 . %1', output: 'Boolean', colour: C.unity,
+    args0: [{ type: 'field_dropdown', name: 'MODE', options: [['wasPressedThisFrame', 'GetMouseButtonDown'], ['isPressed', 'GetMouseButton'], ['wasReleasedThisFrame', 'GetMouseButtonUp']] },
+            { type: 'field_dropdown', name: 'BTN', options: [['leftButton', '0'], ['rightButton', '1'], ['middleButton', '2']] }] },
   { type: 'load_scene', message0: 'SceneManager.LoadScene( %1 )', colour: C.unity, ...STMT, args0: [{ type: 'input_value', name: 'SCENE' }] },
   // リスト・辞書 (追加)
   { type: 'list_insert', message0: '%1 .Insert( %2 , %3 )', colour: C.list, ...STMT, inputsInline: true,
@@ -212,7 +235,7 @@ Blockly.defineBlocksWithJsonArray(withHelp(i18nBlocks([
   { type: 'draw_ray', message0: 'Debug.DrawRay( %1 , %2 , %3 )', colour: 15, ...STMT, inputsInline: true,
     args0: [{ type: 'input_value', name: 'ORIGIN' }, { type: 'input_value', name: 'DIR' }, { type: 'input_value', name: 'COLOR' }] },
   { type: 'unity_value', message0: '%1', output: null, colour: C.unity,
-    args0: [{ type: 'field_dropdown', name: 'V', options: Object.keys(UNITY_VALUES).map(d => [d, d]) }] },
+    args0: [{ type: 'field_dropdown', name: 'V', options: Object.keys(UNITY_VALUES).map(d => [uvCode(d), d]) }] },
   // UI
   { type: 'ui_set_text', message0: '%1 .text = %2', colour: 190, ...STMT, inputsInline: true,
     args0: [{ type: 'input_value', name: 'OBJ' }, { type: 'input_value', name: 'VALUE' }], tooltip: 'Text / TextMeshProUGUI の文字を変更' },
@@ -321,8 +344,9 @@ Blockly.defineBlocksWithJsonArray(withHelp(i18nBlocks([
   { type: 'color_new', message0: 'Color ( %1 , %2 , %3 , %4 )', output: null, colour: C.unity, inputsInline: true,
     args0: [{ type: 'input_value', name: 'R' }, { type: 'input_value', name: 'G' }, { type: 'input_value', name: 'B' }, { type: 'input_value', name: 'A' }],
     tooltip: '0〜1 の値。A (不透明度) は省略可' },
-  { type: 'input_button', message0: 'Input. %1 ( %2 )', output: 'Boolean', colour: C.unity,
-    args0: [{ type: 'field_dropdown', name: 'MODE', options: ['GetButtonDown', 'GetButton', 'GetButtonUp'].map(d => [d, d]) }, { type: 'field_input', name: 'NAME', text: 'Jump' }] },
+  // 昔の Input Manager のボタン (前の版で保存したプロジェクト用。道具箱には出さず、C# は新しい Input System で書く)
+  { type: 'input_button', message0: 'ボタン %2 . %1', output: 'Boolean', colour: C.unity,
+    args0: [{ type: 'field_dropdown', name: 'MODE', options: [['wasPressedThisFrame', 'GetButtonDown'], ['isPressed', 'GetButton'], ['wasReleasedThisFrame', 'GetButtonUp']] }, { type: 'field_input', name: 'NAME', text: 'Jump' }] },
   { type: 'instantiate_one', message0: 'Instantiate( %1 )', output: null, colour: 35, args0: [{ type: 'input_value', name: 'PREFAB' }] },
   { type: 'instantiate_rot', message0: 'Instantiate( %1 , %2 , %3 )', output: null, colour: 35, inputsInline: true,
     args0: [{ type: 'input_value', name: 'PREFAB' }, { type: 'input_value', name: 'POS' }, { type: 'input_value', name: 'ROT' }] },

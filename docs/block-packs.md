@@ -89,4 +89,4 @@
 `js/packs/` にある次のパックは最初から入っています。新しいパックを作るときの見本にしてください。
 
 - `ai-navigation.js`: NavMeshAgent (目的地への移動・停止・速さ・残り距離・到着判定)
-- `input-system.js`: 新しい Input System (キーボード・マウス・ゲームパッド)
+- `input-system.js`: 新しい Input System のゲームパッド (キーボードとマウスは「Unity」カテゴリの入力ブロック)

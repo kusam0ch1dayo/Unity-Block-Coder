@@ -325,7 +325,7 @@ const Imp = {
     if (a.length === 4 && hit(a[2]) && a.slice(0, 2).concat(a[3]).every(x => x.namedChildren.length === 1))
       return this.B('raycast_if', { HIT: hit(a[2]) }, { ORIGIN: this.val('raycast_if', 'ORIGIN', e(a[0])), DIR: this.val('raycast_if', 'DIR', e(a[1])),
         DIST: this.val('raycast_if', 'DIST', e(a[3])), DO: this.body(body) });
-    if (a.length === 3 && this.flat(a[0]).replace(/\s/g, '') === 'Camera.main.ScreenPointToRay(Input.mousePosition)' && hit(a[1]))
+    if (a.length === 3 && this.flat(a[0]).replace(/\s/g, '') .replace('Input.mousePosition', 'Mouse.current.position.ReadValue()') === 'Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue())' && hit(a[1]))
       return this.B('raycast_mouse_if', { HIT: hit(a[1]) }, { DIST: this.val('raycast_mouse_if', 'DIST', e(a[2])), DO: this.body(body) });
     return null;
   },
@@ -443,14 +443,48 @@ const Imp = {
     if ((m = p.match(/^Vector2\.(zero|one|up|down|left|right)$/))) return this.B('vector2_const', { DIR: m[1] });
     if ((m = p.match(/^Mathf\.(\w+)$/)) && MATH_CONST.includes(m[1])) return this.B('math_const', { C: m[1] });
     if ((m = p.match(/^Color\.(white|black|red|green|blue|yellow|cyan|magenta|gray|clear)$/))) return this.B('color_const', { COLOR: m[1] });
-    if (p in UNITY_VALUES) return this.B('unity_value', { V: p });
+    if (p in UNITY_VALUES && p !== 'Input.touchCount') return this.B('unity_value', { V: p });
     return this.B('var_get', { NAME: p });
   },
   packMatch() { return null; },
+  // 新しい Input System の書き方 (このアプリが書き出す形) を入力ブロックに戻す
+  newInput(n) {
+    const t = this.flat(n).replace(/\s+/g, ''), mode = (m, pre) => pre + { isPressed: '', wasPressedThisFrame: 'Down', wasReleasedThisFrame: 'Up' }[m];
+    let m;
+    if ((m = t.match(/^Keyboard\.current\.(\w+)\.(wasPressedThisFrame|isPressed|wasReleasedThisFrame)$/))) {
+      const key = INPUT_KEYS.find(k => isKey(k) === m[1]);
+      if (key) return this.B('input_key', { MODE: mode(m[2], 'GetKey'), KEY: key });
+    }
+    if ((m = t.match(/^Mouse\.current\.(leftButton|rightButton|middleButton)\.(wasPressedThisFrame|isPressed|wasReleasedThisFrame)$/)))
+      return this.B('mouse_button', { MODE: mode(m[2], 'GetMouseButton'), BTN: Object.keys(MOUSE_BTN).find(k => MOUSE_BTN[k] === m[1]) });
+    const axis = Object.keys(AXIS_CODE).find(k => AXIS_CODE[k].replace(/\s+/g, '') === t);
+    if (axis) return this.B('input_axis', { AXIS: axis });
+    const uv = Object.keys(UV_CODE).find(k => UV_CODE[k] === t);
+    if (uv) return this.B('unity_value', { V: uv });
+    return null;
+  },
+  // 昔の Input Manager の書き方 (Input.GetKey など) を、新しい Input System の入力ブロックに置き換える
+  oldInput(fp, a, k) {
+    let m;
+    if ((m = fp.match(/^Input\.(GetKey|GetKeyDown|GetKeyUp)$/)) && k === 1) {
+      const key = (this.path(a[0]) || '').match(/^KeyCode\.(\w+)$/);
+      if (key && /^Mouse[012]$/.test(key[1])) return this.B('mouse_button', { MODE: m[1].replace('Key', 'MouseButton'), BTN: key[1].slice(5) });
+      if (key && INPUT_KEYS.includes(key[1])) return this.B('input_key', { MODE: m[1], KEY: key[1] });
+    }
+    if (/^Input\.(GetAxis|GetAxisRaw)$/.test(fp) && k === 1 && ['Horizontal', 'Vertical', 'Mouse X', 'Mouse Y', 'Jump'].includes(this.str(a[0])))
+      return this.B('input_axis', { AXIS: this.str(a[0]) });
+    if ((m = fp.match(/^Input\.GetButton(Down|Up)?$/)) && k === 1) {
+      const c = BUTTON_CODE[this.str(a[0])], md = m[1] || '';
+      if (c && c.startsWith('Mouse')) return this.B('mouse_button', { MODE: 'GetMouseButton' + md, BTN: Object.keys(MOUSE_BTN).find(x => c.endsWith(MOUSE_BTN[x])) });
+      if (c) return this.B('input_key', { MODE: 'GetKey' + md, KEY: INPUT_KEYS.find(x => c.endsWith('.' + isKey(x))) });
+    }
+    if ((m = fp.match(/^Input\.(GetMouseButton(?:Down|Up)?)$/)) && k === 1 && /^[012]$/.test(this.t(a[0]))) return this.B('mouse_button', { MODE: m[1], BTN: this.t(a[0]) });
+    return null;
+  },
   ex(n) {
     const T = n.type, txt = this.t(n), V = (t, i, x) => this.val(t, i, x);
     if (T === 'parenthesized_expression') return this.ex(n.namedChildren[0]);
-    const pk = this.packMatch(n, true);
+    const pk = this.newInput(n) || this.packMatch(n, true);
     if (pk) return pk;
     if (T === 'integer_literal' || T === 'real_literal') {
       if (/^\d+$/.test(txt)) return this.B('math_number', { NUM: +txt });
@@ -576,13 +610,8 @@ const Imp = {
     if (gen) return this.B('generic_call', { NAME: this.t(gen.g.namedChildren[0]), TYPE: this.t(gen.g.namedChildren[1]).slice(1, -1).trim(), ARGS: this.argText(n) },
       { OBJ: gen.target && V('generic_call', 'OBJ', gen.target) });
     if (fp && a) {
-      if ((m = fp.match(/^Input\.(GetKey|GetKeyDown|GetKeyUp)$/)) && k === 1) {
-        const key = (this.path(a[0]) || '').match(/^KeyCode\.(\w+)$/);
-        if (key && KEYS.includes(key[1])) return this.B('input_key', { MODE: m[1], KEY: key[1] });
-      }
-      if ((m = fp.match(/^Input\.(GetAxis|GetAxisRaw)$/)) && k === 1 && ['Horizontal', 'Vertical', 'Mouse X', 'Mouse Y', 'Jump'].includes(this.str(a[0])))
-        return this.B('input_axis', { MODE: m[1], AXIS: this.str(a[0]) });
-      if ((m = fp.match(/^Input\.(GetButton|GetButtonDown|GetButtonUp)$/)) && k === 1 && this.str(a[0]) !== null) return this.B('input_button', { MODE: m[1], NAME: this.str(a[0]) });
+      const oi = this.oldInput(fp, a, k);
+      if (oi) return oi;
       if ((m = fp.match(/^string\.(IsNullOrEmpty|IsNullOrWhiteSpace)$/)) && k === 1) return this.B('string_check', { FN: m[1] }, { VALUE: V('string_check', 'VALUE', a[0]) });
       if ((m = fp.match(/^(int|float)\.Parse$/)) && k === 1) return this.B('parse_num', { TYPE: m[1] }, { VALUE: V('parse_num', 'VALUE', a[0]) });
       if ((m = fp.match(/^Quaternion\.(Slerp|Lerp|RotateTowards)$/)) && k === 3)
@@ -597,7 +626,6 @@ const Imp = {
       if (fp === 'Instantiate' && k === 1) return this.B('instantiate_one', {}, { PREFAB: V('instantiate_one', 'PREFAB', a[0]) });
       if (fp === 'Instantiate' && k === 3 && this.t(a[2]) !== 'Quaternion.identity')
         return this.B('instantiate_rot', {}, { PREFAB: V('instantiate_rot', 'PREFAB', a[0]), POS: V('instantiate_rot', 'POS', a[1]), ROT: V('instantiate_rot', 'ROT', a[2]) });
-      if ((m = fp.match(/^Input\.(GetMouseButton(?:Down|Up)?)$/)) && k === 1 && /^[012]$/.test(this.t(a[0]))) return this.B('mouse_button', { MODE: m[1], BTN: this.t(a[0]) });
       if (fp === 'Random.Range' && k === 2) return this.B('random_range', {}, { A: V('random_range', 'A', a[0]), B: V('random_range', 'B', a[1]) });
       if ((m = fp.match(/^Mathf\.(\w+)$/))) {
         if (k === 1 && MATH1.includes(m[1])) return this.B('math_func1', { FN: m[1] }, { X: V('math_func1', 'X', a[0]) });

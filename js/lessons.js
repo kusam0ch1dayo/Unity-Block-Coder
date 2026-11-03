@@ -40,7 +40,7 @@ const TUTORIALS = [
         'Done! Save with "Save .cs" and put it in the Assets folder of Unity. Drag it onto a GameObject in the scene and press ▶ (Play) to see it in the Console.'),
     ] },
   { id: 'read', genre: 'first', level: 1, title: ['C# を読んでみよう', 'Read the C#'], desc: ['ブロックと C# の対応を確かめる', 'See how blocks and C# match'],
-    start: src('Reader', '    public float speed = 3f;\n\n    void Update()\n    {\n        if (Input.GetKey(KeyCode.RightArrow))\n        {\n            transform.Translate(Vector3.right * speed * Time.deltaTime);\n        }\n    }\n'), steps: [
+    start: src('Reader', '    public float speed = 3f;\n\n    void Update()\n    {\n        if (Keyboard.current.rightArrowKey.isPressed)\n        {\n            transform.Translate(Vector3.right * speed * Time.deltaTime);\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
       { text: ['右側の C# の行をクリックしてみましょう。その行を作っているブロックが選ばれ、下の「ヘルプ」に説明が出ます。', 'Click a line of the C# on the right. The block that makes it is selected, and "Help" below explains it.'],
         check: () => !!selectedId },
       done('今度はブロックをクリックしてみましょう。対応する C# の行が青く光ります。いろいろなブロックで試して、C# の書き方を覚えましょう。', 'Now click a block. The matching C# lines light up. Try several blocks to learn how C# is written.'),
@@ -123,13 +123,13 @@ const TUTORIALS = [
   // ========== 条件と繰り返し ==========
   { id: 'if', genre: 'flow', level: 1, title: ['もし〜なら (if)', 'If statements'], desc: ['キーを押したときだけ動かす', 'Do something only when a key is pressed'],
     start: src('Jumper', '    void Update()\n    {\n    }\n'),
-    answer: src('Jumper', '    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.Space))\n        {\n            Debug.Log("ジャンプ！");\n        }\n    }\n'), steps: [
+    answer: src('Jumper', '    void Update()\n    {\n        if (Keyboard.current.spaceKey.wasPressedThisFrame)\n        {\n            Debug.Log("ジャンプ！");\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
       { text: ['「ロジック」カテゴリの[[controls_if|「もし」ブロック]]を Update() の中に入れましょう。', 'Put [[controls_if|the "if" block]] from the "Logic" category into Update().'], cat: 'ロジック', check: inM('Update', /if \(/) },
-      { text: ['[[controls_if|「もし」]]の条件の穴に、「Unity」カテゴリの[[input_key|「Input.GetKeyDown( KeyCode.Space )」]]をはめましょう。スペースキーを押した瞬間だけ true になります。',
-        'Snap [[input_key|"Input.GetKeyDown( KeyCode.Space )"]] from the "Unity" category into the condition. It is true only at the moment Space is pressed.'],
-        cat: 'Unity', check: has(/if \(Input\.GetKeyDown\(KeyCode\.\w+\)\)/) },
+      { text: ['[[controls_if|「もし」]]の条件の穴に、「Unity」カテゴリの[[input_key|「Keyboard.current.spaceKey.wasPressedThisFrame」]]をはめましょう。スペースキーを押した瞬間だけ true になります。',
+        'Snap [[input_key|"Keyboard.current.spaceKey.wasPressedThisFrame"]] from the "Unity" category into the condition. It is true only at the moment Space is pressed.'],
+        cat: 'Unity', check: has(/if \(Keyboard\.current\.\w+\.wasPressedThisFrame\)/) },
       { text: ['[[controls_if|「もし」]]の中 (実行) に [[debug_log|Debug.Log]] を入れて、「ジャンプ！」と表示させましょう。', 'Put [[debug_log|a Debug.Log]] inside the if (do) and make it print "Jump!".'],
-        check: has(/if \(Input\.GetKeyDown\(KeyCode\.\w+\)\)\n\s*\{\n\s*Debug\.Log\(/) },
+        check: has(/if \(Keyboard\.current\.\w+\.wasPressedThisFrame\)\n\s*\{\n\s*Debug\.Log\(/) },
       done('これで「スペースキーを押したときだけ」表示されます。歯車アイコンから「そうでなければ (else)」も追加できます。', 'Now it prints only when Space is pressed. Use the gear icon to add [[preset:if_else|"else"]] too.'),
     ] },
   { id: 'compare', genre: 'flow', level: 1, title: ['比べる (else)', 'Compare (else)'], desc: ['HP が 0 以下ならゲームオーバー、そうでなければ…', 'Game over when HP is 0 or less, otherwise…'],
@@ -181,14 +181,14 @@ const TUTORIALS = [
     ] },
 
   // ========== 入力と移動 ==========
-  { id: 'axis', genre: 'input', level: 1, title: ['矢印キーで動かす', 'Move with the arrow keys'], desc: ['Input.GetAxis で左右に動く', 'Move left and right with Input.GetAxis'],
+  { id: 'axis', genre: 'input', level: 1, title: ['キーで左右に動かす', 'Move with the keys'], desc: ['キーの軸 (A / D) で左右に動く', 'Move left and right with the A / D key axis'],
     start: src('Walker', '    public float speed = 5f;\n\n    void Update()\n    {\n    }\n'),
-    answer: src('Walker', '    public float speed = 5f;\n\n    void Update()\n    {\n        float h = Input.GetAxis("Horizontal");\n        transform.Translate(Vector3.right * h * speed * Time.deltaTime);\n    }\n'), steps: [
-      { text: ['「変数」の[[var_local|「変数」ブロック]]を Update に入れ、型 float・名前 h にして、値に「Unity」の[[input_axis|「Input.GetAxis("Horizontal")」]]をはめましょう。', 'Add [[var_local|a "Variable" block]] in Update: type float, name h, value [[input_axis|"Input.GetAxis("Horizontal")"]] from "Unity".'],
-        cat: 'Unity', check: inM('Update', /float h = Input\.GetAxis\("Horizontal"\);/) },
+    answer: src('Walker', '    public float speed = 5f;\n\n    void Update()\n    {\n        float h = Keyboard.current.dKey.ReadValue() - Keyboard.current.aKey.ReadValue();\n        transform.Translate(Vector3.right * h * speed * Time.deltaTime);\n    }\n', ['UnityEngine.InputSystem']), steps: [
+      { text: ['「変数」の[[var_local|「変数」ブロック]]を Update に入れ、型 float・名前 h にして、値に「Unity」の[[input_axis|「左右 (A / D) の軸」]]をはめましょう。', 'Add [[var_local|a "Variable" block]] in Update: type float, name h, value [[input_axis|"left / right (A / D) axis"]] from "Unity".'],
+        cat: 'Unity', check: inM('Update', /float h = Keyboard\.current\.dKey\.ReadValue\(\) - Keyboard\.current\.aKey\.ReadValue\(\);/) },
       { text: ['[[transform_action|transform.Translate]] を入れ、中を「Vector3.right × h × speed × Time.deltaTime」にしましょう。', 'Add [[transform_action|transform.Translate]] with Vector3.right × h × speed × Time.deltaTime.'],
         cat: 'Unity', check: c => { const t = (inEvent(c, 'Update').match(/transform\.Translate\(([^;]*)\);/) || [, ''])[1]; return /Vector3\.right/.test(t) && /\bh\b/.test(t) && /speed/.test(t) && /Time\.deltaTime/.test(t); } },
-      done('GetAxis("Horizontal") は ← で -1、→ で 1、押していないと 0 になります。A / D キーやゲームパッドのスティックでも動きます。"Vertical" にすると上下です。', 'GetAxis("Horizontal") is -1 with ←, 1 with → and 0 otherwise. A / D keys and gamepad sticks work too. Use "Vertical" for up and down.'),
+      done('ReadValue() はキーを押していると 1、押していないと 0 です。D − A なので、A で -1、D で 1、どちらも押していないと 0 になります。ドロップダウンで上下 (W / S) や矢印キーにも変えられます。', 'ReadValue() is 1 while a key is held and 0 otherwise. D − A gives -1 with A, 1 with D and 0 with neither. The dropdown also has up / down (W / S) and the arrow keys.'),
     ] },
   { id: 'rotate', genre: 'input', level: 1, title: ['くるくる回す', 'Spin around'], desc: ['transform.Rotate で回転させる', 'Rotate with transform.Rotate'],
     start: src('Spinner', '    void Update()\n    {\n    }\n'),
@@ -200,18 +200,18 @@ const TUTORIALS = [
     ] },
   { id: 'click', genre: 'input', level: 1, title: ['マウスのクリック', 'Mouse clicks'], desc: ['クリックした瞬間を調べる', 'Detect a mouse click'],
     start: src('Clicker', '    public int clicks = 0;\n\n    void Update()\n    {\n    }\n'),
-    answer: src('Clicker', '    public int clicks = 0;\n\n    void Update()\n    {\n        if (Input.GetMouseButtonDown(0))\n        {\n            clicks++;\n            Debug.Log(clicks);\n        }\n    }\n'), steps: [
-      { text: ['Update に[[controls_if|「もし」]]を入れ、条件に「Unity」の[[mouse_button;MODE=GetMouseButtonDown|「Input.GetMouseButtonDown」]]をはめましょう。0 は左ボタンです。', 'Put [[controls_if|an "if"]] in Update with [[mouse_button;MODE=GetMouseButtonDown|"Input.GetMouseButtonDown"]] from "Unity". 0 is the left button.'], cat: 'Unity', check: inM('Update', /if \(Input\.GetMouseButtonDown\(0\)\)/) },
-      { text: ['中に「変数」の[[var_incr|「++」ブロック]]を入れ、名前を clicks にしましょう。', 'Put [[var_incr|the "++" block]] from "Variables" inside, named clicks.'], cat: '変数', check: has(/if \(Input\.GetMouseButtonDown\(0\)\)\n\s*\{\n\s*clicks\+\+;/) },
+    answer: src('Clicker', '    public int clicks = 0;\n\n    void Update()\n    {\n        if (Mouse.current.leftButton.wasPressedThisFrame)\n        {\n            clicks++;\n            Debug.Log(clicks);\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
+      { text: ['Update に[[controls_if|「もし」]]を入れ、条件に「Unity」の[[mouse_button|「Mouse.current.leftButton.wasPressedThisFrame」]]をはめましょう。leftButton は左ボタンです。', 'Put [[controls_if|an "if"]] in Update with [[mouse_button|"Mouse.current.leftButton.wasPressedThisFrame"]] from "Unity". leftButton is the left button.'], cat: 'Unity', check: inM('Update', /if \(Mouse\.current\.leftButton\.wasPressedThisFrame\)/) },
+      { text: ['中に「変数」の[[var_incr|「++」ブロック]]を入れ、名前を clicks にしましょう。', 'Put [[var_incr|the "++" block]] from "Variables" inside, named clicks.'], cat: '変数', check: has(/if \(Mouse\.current\.leftButton\.wasPressedThisFrame\)\n\s*\{\n\s*clicks\+\+;/) },
       { text: ['その下に [[debug_log;@MSG=var:clicks|Debug.Log(clicks)]] を入れましょう。', 'Add [[debug_log;@MSG=var:clicks|Debug.Log(clicks)]] below it.'], check: has(/clicks\+\+;\n\s*Debug\.Log\(clicks\)/) },
-      done('1 は右ボタン、2 は中ボタンです。GetMouseButton は押している間ずっと、GetMouseButtonUp は離した瞬間に true になります。', '1 is the right button and 2 the middle. GetMouseButton is true while held, GetMouseButtonUp when released.'),
+      done('rightButton は右ボタン、middleButton は中ボタンです。isPressed は押している間ずっと、wasReleasedThisFrame は離した瞬間に true になります。', 'rightButton is the right button and middleButton the middle. isPressed is true while held, wasReleasedThisFrame when released.'),
     ] },
   { id: 'jump', genre: 'input', level: 2, title: ['物理でジャンプ', 'Jump with physics'], desc: ['Rigidbody に上向きの力を加える', 'Push a Rigidbody upward'],
     start: src('JumpPlayer', '    public float jumpPower = 5f;\n    private Rigidbody rb;\n\n    void Start()\n    {\n    }\n\n    void Update()\n    {\n    }\n'),
-    answer: src('JumpPlayer', '    public float jumpPower = 5f;\n    private Rigidbody rb;\n\n    void Start()\n    {\n        rb = GetComponent<Rigidbody>();\n    }\n\n    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.Space))\n        {\n            rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);\n        }\n    }\n'), steps: [
+    answer: src('JumpPlayer', '    public float jumpPower = 5f;\n    private Rigidbody rb;\n\n    void Start()\n    {\n        rb = GetComponent<Rigidbody>();\n    }\n\n    void Update()\n    {\n        if (Keyboard.current.spaceKey.wasPressedThisFrame)\n        {\n            rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
       { text: ['Start に[[var_set|「代入」ブロック]]を入れ、名前を rb、値に「オブジェクト」の[[get_component;TYPE=Rigidbody|「GetComponent< Rigidbody >()」]]をはめましょう。自分に付いている Rigidbody を取り出します。', 'Put [[var_set|an assignment]] in Start: name rb, value [[get_component;TYPE=Rigidbody|"GetComponent< Rigidbody >()"]] from "Objects". It gets the Rigidbody on this object.'],
         cat: 'オブジェクト', check: inM('Start', /rb = GetComponent<Rigidbody>\(\);/) },
-      { text: ['Update に[[preset:if_space|「もし Input.GetKeyDown(KeyCode.Space)」]]を入れましょう。', 'Add [[preset:if_space|"if Input.GetKeyDown(KeyCode.Space)"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Input\.GetKeyDown\(KeyCode\.Space\)\)/) },
+      { text: ['Update に[[preset:if_space|「もし Keyboard.current.spaceKey.wasPressedThisFrame」]]を入れましょう。', 'Add [[preset:if_space|"if Keyboard.current.spaceKey.wasPressedThisFrame"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Keyboard\.current\.spaceKey\.wasPressedThisFrame\)/) },
       { text: ['中に「オブジェクト」の[[rb_addforce|「rb.AddForce」]]を入れ、力を「Vector3.up × jumpPower」、種類を Impulse にしましょう。', 'Put [[rb_addforce|"rb.AddForce"]] from "Objects" inside: force Vector3.up × jumpPower, mode Impulse.'],
         cat: 'オブジェクト', check: has(/rb\.AddForce\(Vector3\.up \* jumpPower, ForceMode\.Impulse\);/) },
       done('Impulse は「一瞬で力を加える」(ジャンプ向き)、Force は「押し続ける力」(FixedUpdate で使う) です。Unity でオブジェクトに Rigidbody を付けるのを忘れずに。', 'Impulse applies the force at once (good for jumps); Force pushes continuously (use it in FixedUpdate). Remember to add a Rigidbody in Unity.'),
@@ -234,10 +234,10 @@ const TUTORIALS = [
     ] },
   { id: 'spawn', genre: 'objects', level: 2, title: ['プレハブを出す', 'Spawn a prefab'], desc: ['Instantiate で弾を作る', 'Create bullets with Instantiate'],
     start: src('Shooter', '    public GameObject bulletPrefab;\n\n    void Update()\n    {\n    }\n'),
-    answer: src('Shooter', '    public GameObject bulletPrefab;\n\n    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.Space))\n        {\n            Instantiate(bulletPrefab, transform.position, Quaternion.identity);\n        }\n    }\n'), steps: [
+    answer: src('Shooter', '    public GameObject bulletPrefab;\n\n    void Update()\n    {\n        if (Keyboard.current.spaceKey.wasPressedThisFrame)\n        {\n            Instantiate(bulletPrefab, transform.position, Quaternion.identity);\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
       done('プレハブは、オブジェクトの「設計図」です。Unity でオブジェクトを Project ウィンドウにドラッグすると作れます。bulletPrefab にはインスペクターで弾のプレハブを入れます。',
         'A prefab is a blueprint of an object. Drag an object into the Project window in Unity to make one. Assign the bullet prefab to bulletPrefab in the Inspector.'),
-      { text: ['Update に[[preset:if_space|「もし Input.GetKeyDown(KeyCode.Space)」]]を入れましょう。', 'Add [[preset:if_space|"if Input.GetKeyDown(KeyCode.Space)"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Input\.GetKeyDown\(KeyCode\.Space\)\)/) },
+      { text: ['Update に[[preset:if_space|「もし Keyboard.current.spaceKey.wasPressedThisFrame」]]を入れましょう。', 'Add [[preset:if_space|"if Keyboard.current.spaceKey.wasPressedThisFrame"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Keyboard\.current\.spaceKey\.wasPressedThisFrame\)/) },
       { text: ['中に「オブジェクト」の[[instantiate|「Instantiate」]](位置付き) を入れ、プレハブに bulletPrefab、位置に transform.position をはめましょう。', 'Put [[instantiate|"Instantiate"]] (with position) from "Objects" inside: prefab bulletPrefab, position transform.position.'],
         cat: 'オブジェクト', check: has(/Instantiate\(bulletPrefab, transform\.position, Quaternion\.identity\);/) },
       done('Quaternion.identity は「回転なし」です。出した弾を動かすには、弾のプレハブに「前に進む」スクリプトを付けます。', 'Quaternion.identity means no rotation. To move the bullet, give the prefab a script that moves it forward.'),
@@ -394,8 +394,8 @@ const TUTORIALS = [
     ] },
   { id: 'sound', genre: 'ui', level: 1, title: ['効果音を鳴らす', 'Play a sound effect'], desc: ['PlayOneShot で音を鳴らす', 'Play a sound with PlayOneShot'],
     start: src('Sfx', '    public AudioSource audioSource;\n    public AudioClip jumpSound;\n\n    void Update()\n    {\n    }\n'),
-    answer: src('Sfx', '    public AudioSource audioSource;\n    public AudioClip jumpSound;\n\n    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.Space))\n        {\n            audioSource.PlayOneShot(jumpSound);\n        }\n    }\n'), steps: [
-      { text: ['Update に[[preset:if_space|「もし Input.GetKeyDown(KeyCode.Space)」]]を入れましょう。', 'Add [[preset:if_space|"if Input.GetKeyDown(KeyCode.Space)"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Input\.GetKeyDown\(KeyCode\.Space\)\)/) },
+    answer: src('Sfx', '    public AudioSource audioSource;\n    public AudioClip jumpSound;\n\n    void Update()\n    {\n        if (Keyboard.current.spaceKey.wasPressedThisFrame)\n        {\n            audioSource.PlayOneShot(jumpSound);\n        }\n    }\n', ['UnityEngine.InputSystem']), steps: [
+      { text: ['Update に[[preset:if_space|「もし Keyboard.current.spaceKey.wasPressedThisFrame」]]を入れましょう。', 'Add [[preset:if_space|"if Keyboard.current.spaceKey.wasPressedThisFrame"]] to Update.'], cat: 'ロジック', check: inM('Update', /if \(Keyboard\.current\.spaceKey\.wasPressedThisFrame\)/) },
       { text: ['中に「サウンド・アニメ」の[[audio_oneshot|「PlayOneShot」]]を入れ、AudioSource を audioSource、音を jumpSound にしましょう。', 'Put [[audio_oneshot|"PlayOneShot"]] from "Sound & Animation" inside: AudioSource audioSource, clip jumpSound.'],
         cat: 'サウンド・アニメ', check: has(/audioSource\.PlayOneShot\(jumpSound\);/) },
       done('PlayOneShot は音を重ねて鳴らせるので、効果音向きです。BGM は AudioSource の Play を使います。', 'PlayOneShot can overlap sounds, so it suits sound effects. Use Play on an AudioSource for music.'),
@@ -412,8 +412,8 @@ const TUTORIALS = [
     ] },
   { id: 'scene', genre: 'ui', level: 2, title: ['シーンを切り替える', 'Change scenes'], desc: ['R キーでステージをやり直す', 'Restart the stage with the R key'],
     start: src('Restart', '    void Update()\n    {\n    }\n'),
-    answer: src('Restart', '    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.R))\n        {\n            SceneManager.LoadScene("Game");\n        }\n    }\n', ['UnityEngine.SceneManagement']), steps: [
-      { text: ['Update に[[preset:if_key|「もし Input.GetKeyDown」]]を入れ、キーを R にしましょう。', 'Add [[preset:if_key|"if Input.GetKeyDown"]] to Update with the key R.'], cat: 'ロジック', check: inM('Update', /if \(Input\.GetKeyDown\(KeyCode\.R\)\)/) },
+    answer: src('Restart', '    void Update()\n    {\n        if (Keyboard.current.rKey.wasPressedThisFrame)\n        {\n            SceneManager.LoadScene("Game");\n        }\n    }\n', ['UnityEngine.SceneManagement', 'UnityEngine.InputSystem']), steps: [
+      { text: ['Update に[[preset:if_key|「もし キーを押した瞬間」]]を入れ、キーを R にしましょう。', 'Add [[preset:if_key|"if a key was pressed"]] to Update with the key R.'], cat: 'ロジック', check: inM('Update', /if \(Keyboard\.current\.rKey\.wasPressedThisFrame\)/) },
       { text: ['中に「オブジェクト」の[[load_scene|「シーンを読み込む」]]を入れ、シーン名を "Game" にしましょう。', 'Put [[load_scene|"load scene"]] from "Objects" inside with the scene name "Game".'], cat: 'オブジェクト', check: has(/SceneManager\.LoadScene\("Game"\);/) },
       done('Unity の File → Build Settings にシーンを追加しておく必要があります。using UnityEngine.SceneManagement; は自動で付きます。', 'Add the scene in File → Build Settings in Unity. using UnityEngine.SceneManagement; is added automatically.'),
     ] },

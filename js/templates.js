@@ -1,6 +1,7 @@
 // テンプレート集: よく作るスクリプトを新しいタブで開く (C# を読み込んでブロックにする)
 const TEMPLATES = [
   { name: '2D プレイヤー移動', desc: '左右移動とジャンプ (Rigidbody2D + 接地判定)', code: `using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController2D : MonoBehaviour
@@ -22,19 +23,20 @@ public class PlayerController2D : MonoBehaviour
     void Update()
     {
         // 左右の移動
-        float h = Input.GetAxisRaw("Horizontal");
+        float h = Keyboard.current.dKey.ReadValue() - Keyboard.current.aKey.ReadValue();
         rb.velocity = new Vector2(h * moveSpeed, rb.velocity.y);
         // 足元に地面があるか調べる
         RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance + 0.5f, groundLayer);
         isGrounded = hit.collider != null;
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (Keyboard.current.spaceKey.wasPressedThisFrame && isGrounded)
         {
             rb.AddForce(Vector2.up * jumpPower, ForceMode2D.Impulse);
         }
     }
 }
 ` },
-  { name: '3D プレイヤー移動', desc: '前後移動と左右回転 (矢印キー / WASD)', code: `using UnityEngine;
+  { name: '3D プレイヤー移動', desc: '前後移動と左右回転 (WASD)', code: `using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerController3D : MonoBehaviour
 {
@@ -43,8 +45,8 @@ public class PlayerController3D : MonoBehaviour
 
     void Update()
     {
-        float v = Input.GetAxis("Vertical");
-        float h = Input.GetAxis("Horizontal");
+        float v = Keyboard.current.wKey.ReadValue() - Keyboard.current.sKey.ReadValue();
+        float h = Keyboard.current.dKey.ReadValue() - Keyboard.current.aKey.ReadValue();
         // 前後に移動して、左右に回転する
         transform.Translate(Vector3.forward * v * moveSpeed * Time.deltaTime);
         transform.Rotate(Vector3.up * h * turnSpeed * Time.deltaTime);

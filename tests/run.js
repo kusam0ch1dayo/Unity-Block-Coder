@@ -91,6 +91,19 @@ async function langTests(browser, base, lang) {
     return { i, raws: r.log.length, stable: c1 === code, errors: issues.filter(x => x.level === 'error').length };
   }).filter(x => x.raws || !x.stable || x.errors));
   check('テンプレートがすべてそのまま読み込めて、エラーがない', !tpl.length, JSON.stringify(tpl));
+  const legacy = await p.evaluate(() => {
+    importCs('using UnityEngine;\n\npublic class Old : MonoBehaviour\n{\n    void Update()\n    {\n        if (Input.GetKeyDown(KeyCode.Space) || Input.GetButtonDown("Fire1") || Input.GetKeyUp(KeyCode.Mouse0)) Debug.Log(Input.mousePosition);\n'
+      + '        float v = Input.GetAxis("Vertical");\n        bool r = Input.GetMouseButton(1) && Input.GetKey(KeyCode.E);\n    }\n}\n', false); update();
+    const c = code;
+    importCs(c, false); update();
+    return { c, stable: c === code };
+  });
+  check('旧 Input Manager の C# を読み込むと、新しい Input System の書き方になる', !/\bInput\.|KeyCode/.test(legacy.c) && legacy.stable && ['using UnityEngine.InputSystem;', 'Keyboard.current.spaceKey.wasPressedThisFrame',
+    'Mouse.current.leftButton.wasPressedThisFrame', 'Mouse.current.leftButton.wasReleasedThisFrame', 'Mouse.current.position.ReadValue()', 'float v = Keyboard.current.wKey.ReadValue() - Keyboard.current.sKey.ReadValue();',
+    'Mouse.current.rightButton.isPressed && Keyboard.current.eKey.isPressed'].every(x => legacy.c.includes(x)), legacy.c);
+  const oldUse = await p.evaluate(() => [...TEMPLATES.map(t => t.code), ...TUTORIALS.flatMap(t => [t.start, t.answer || '']), (() => { load(sample); update(); return code; })()]
+    .filter(c => /\bInput\.[A-Za-z]|KeyCode\./.test(c)).length);
+  check('テンプレート・レッスン・サンプルに旧 Input Manager の書き方が残っていない', !oldUse, oldUse);
 
   const tut = await p.evaluate(() => {
     const bad = [];
@@ -452,7 +465,7 @@ async function toolTests(browser, base) {
   await p.keyboard.press('Escape');
 
   await ev(() => document.getElementById('sample').click()); await p.waitForTimeout(200);
-  await ev(() => { openUnityErrors(); document.getElementById('ueText').value = "Assets/Scripts/PlayerController.cs(26,13): error CS0103: The name 'h' does not exist in the current context\nNullReferenceException: Object reference not set to an instance of an object\nPlayerController.Update () (at Assets/Scripts/PlayerController.cs:27)"; document.querySelector('[data-ue=parse]').click(); });
+  await ev(() => { openUnityErrors(); document.getElementById('ueText').value = "Assets/Scripts/PlayerController.cs(27,13): error CS0103: The name 'h' does not exist in the current context\nNullReferenceException: Object reference not set to an instance of an object\nPlayerController.Update () (at Assets/Scripts/PlayerController.cs:27)"; document.querySelector('[data-ue=parse]').click(); });
   await ev(() => { openLearn(); document.querySelector('#learnBody [data-g="time"]').click(); });
   check('学ぶ: ジャンルを選ぶと、そのジャンルのレッスンだけが並ぶ', await ev(() => [...document.querySelectorAll('#learnBody .lg-item')].every(b => TUTORIALS[+b.dataset.t].genre === 'time') && document.querySelectorAll('#learnBody .lg-item').length === TUTORIALS.filter(t => t.genre === 'time').length));
   await ev(() => document.querySelector('#learnBody .lg-item').click()); await p.waitForTimeout(200);
@@ -462,9 +475,9 @@ async function toolTests(browser, base) {
   await ev(() => document.querySelector('#tutor .tut-blk').click());
   check('ブロックの絵をクリックすると、そのカテゴリが開く', await ev(() => ws.getToolbox().getSelectedItem()?.getName() === '変数'));
   await ev(() => { tutor = null; renderTutor(); });
-  check('Unity のエラー (コンパイル・実行時) を読み取って説明する', await ev(() => parsedErrors.map(x => x.code + '@' + x.line).join(',') === 'CS0103@26,NullReferenceException@27' && document.querySelectorAll('#ueList .ue-help').length === 2));
+  check('Unity のエラー (コンパイル・実行時) を読み取って説明する', await ev(() => parsedErrors.map(x => x.code + '@' + x.line).join(',') === 'CS0103@27,NullReferenceException@27' && document.querySelectorAll('#ueList .ue-help').length === 2));
   await ev(() => document.querySelector('[data-ue=go]').click());
-  check('Unity のエラーの行のブロックへ移動する', await ev(() => Blockly.common.getSelected()?.type === 'var_local' && code.split('\n')[25].includes('float h')));
+  check('Unity のエラーの行のブロックへ移動する', await ev(() => Blockly.common.getSelected()?.type === 'var_local' && code.split("\n")[26].includes('float h')));
 
   await ev(() => { recentTypes = ['debug_log', 'if_else_missing_type']; refreshToolbox(); });
   check('最近使ったブロックのカテゴリが先頭に出る', await ev(() => activeToolbox.contents[0].name === '🕘 最近使った' && activeToolbox.contents[0].contents.length === 1));
@@ -607,7 +620,7 @@ async function aiTests(browser, base) {
   await p.mouse.move(r.x, r.y); await p.mouse.down(); await p.mouse.move(r.x2, r.y2, { steps: 5 }); await p.mouse.up();
   check('範囲選択で囲んだブロックが強調され、選択中と表示される', await p.evaluate(() => ai.sel?.blocks.length === 1 && document.querySelectorAll('.ubc-ai-sel').length === 1 && !!document.querySelector('.ai-chip.sel')));
   await p.fill('#aiText', 'これは何？'); await p.keyboard.press('Enter'); await p.waitForFunction(() => !ai.busy);
-  check('選択範囲を AI に優先して渡す', /\[選択範囲/.test(mock.last.messages.at(-1).content) && /if \(Input\.GetKeyDown/.test(mock.last.messages.at(-1).content.split('[エラー')[0]));
+  check('選択範囲を AI に優先して渡す', /\[選択範囲/.test(mock.last.messages.at(-1).content) && /if \(Keyboard\.current\.spaceKey\.wasPressedThisFrame/.test(mock.last.messages.at(-1).content.split('[エラー')[0]));
   await p.click('.ai-chip.sel [data-ai="unselect"]');
   check('選択を外せる', await p.evaluate(() => !ai.sel && !document.querySelector('.ubc-ai-sel')));
   // 拡張パック・JavaScript

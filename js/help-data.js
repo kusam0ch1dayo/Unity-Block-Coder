@@ -51,7 +51,7 @@ H('tuple2', ['タプル (値の組)', 'Tuple'], ['2 つの値をひと組にし�
 
 // ---- ロジック
 H('controls_if', ['もし (if)', 'if'], ['条件が true (正しい) ときだけ中を実行します。歯車で「そうでなければ (else)」を追加できます。', 'Runs the inside only when the condition is true. Use the gear to add else / else if.'],
-  { c: 'language-reference/statements/selection-statements', t: ['条件には比較ブロック (==, <, > など) や Input.GetKeyDown をはめます。', 'Put a comparison (==, <, >) or Input.GetKeyDown in the condition.'] });
+  { c: 'language-reference/statements/selection-statements', t: ['条件には比較ブロック (==, <, > など) や「キー入力」(Keyboard.current.spaceKey.wasPressedThisFrame など) をはめます。', 'Put a comparison (==, <, >) or a key input (Keyboard.current.spaceKey.wasPressedThisFrame) in the condition.'] });
 H('logic_compare', ['比較', 'Compare'], ['2 つの値を比べて true / false を返します。== は「等しい」、!= は「等しくない」です。', 'Compares two values and returns true / false. == means equal, != means not equal.'], { c: 'language-reference/operators/comparison-operators' });
 H('logic_operation', ['かつ / または', 'and / or'], ['かつ (&&) は両方 true のとき、または (||) はどちらかが true のとき true です。', 'and (&&) is true when both are true; or (||) when either is true.'], { c: 'language-reference/operators/boolean-logical-operators' });
 H('logic_negate', ['ではない (!)', 'not (!)'], ['true と false を逆にします。', 'Flips true and false.']);
@@ -141,12 +141,17 @@ H('quaternion_lerp', ['回転をなめらかに', 'Smooth rotation'], ['今の�
 H('quaternion_look', ['その方向を向く回転', 'Look rotation'], ['指定した方向を向く回転を作ります。', 'Makes a rotation that faces the given direction.'], { u: 'Quaternion.LookRotation' });
 H('quaternion_axis', ['軸の周りに回す回転', 'Angle-axis rotation'], ['指定した軸の周りに、指定した角度だけ回す回転を作ります。', 'Makes a rotation of the given angle around an axis.'], { u: 'Quaternion.AngleAxis' });
 H('time_value', ['Time (時間)', 'Time'], ['deltaTime は前のフレームからの秒数、time はゲーム開始からの秒数です。', 'deltaTime is the seconds since the last frame; time is the seconds since the game started.'], { u: 'Time-deltaTime' });
-H('input_key', ['キー入力', 'Key input'], ['GetKeyDown は押した瞬間、GetKey は押している間、GetKeyUp は離した瞬間に true になります。', 'GetKeyDown is true the moment a key is pressed, GetKey while held, GetKeyUp when released.'], { u: 'Input.GetKeyDown' });
-H('input_axis', ['方向キーの入力 (軸)', 'Axis input'], ['Horizontal は左右、Vertical は上下のキーで -1〜1 の値になります。GetAxisRaw はなめらかにならず -1, 0, 1 です。',
-  'Horizontal (left/right) and Vertical (up/down) give values from -1 to 1. GetAxisRaw gives only -1, 0, 1.'], { u: 'Input.GetAxis' });
-H('input_button', ['ボタン入力', 'Button input'], ['Input Manager で決めたボタン (Jump など) の入力。', 'Input of a button defined in the Input Manager, such as Jump.'], { u: 'Input.GetButtonDown' });
-H('mouse_button', ['マウスのボタン', 'Mouse button'], ['0 は左、1 は右、2 は中ボタンです。', '0 is left, 1 is right, 2 is the middle button.'], { u: 'Input.GetMouseButtonDown' });
-H('unity_value', ['Unity の値', 'Unity values'], ['マウスの位置、メインカメラ、画面サイズ、ランダムな値など。', 'Mouse position, main camera, screen size, random values and more.'], { u: 'Input-mousePosition' });
+// 入力は新しい Input System (パッケージ com.unity.inputsystem)。Project Settings → Player → Active Input Handling を「Input System Package (New)」か「Both」にする
+const IS_NOTE = [' 新しい Input System を使います (Package Manager で Input System を入れておく)。', ' Uses the new Input System (install the Input System package first).'];
+H('input_key', ['キー入力', 'Key input'], ['wasPressedThisFrame は押した瞬間、isPressed は押している間、wasReleasedThisFrame は離した瞬間に true になります。' + IS_NOTE[0],
+  'wasPressedThisFrame is true the moment a key is pressed, isPressed while held, wasReleasedThisFrame when released.' + IS_NOTE[1]], { u: 'https://docs.unity3d.com/Packages/com.unity.inputsystem@1.11/manual/Keyboard.html' });
+H('input_axis', ['方向キーの入力 (軸)', 'Axis input'], ['キーの左右・上下を -1〜1 の数にします (押していないと 0)。マウスの動きは前のフレームから動いたピクセル数です。' + IS_NOTE[0],
+  'Turns left/right or up/down keys into a number from -1 to 1 (0 when not pressed). Mouse movement is the pixels moved since the last frame.' + IS_NOTE[1]], { u: 'https://docs.unity3d.com/Packages/com.unity.inputsystem@1.11/manual/Keyboard.html' });
+H('input_button', ['ボタン入力 (前の版)', 'Button input (old)'], ['前の版で作ったブロックです。Jump はスペース、Fire1 はマウスの左ボタンとして C# を書きます。今は「キー入力」か「マウスのボタン」を使ってください。',
+  'A block from an older version. Jump is written as the space key and Fire1 as the left mouse button. Use "Key input" or "Mouse button" instead.'], { u: 'https://docs.unity3d.com/Packages/com.unity.inputsystem@1.11/manual/Keyboard.html' });
+H('mouse_button', ['マウスのボタン', 'Mouse button'], ['leftButton は左、rightButton は右、middleButton は中ボタンです。' + IS_NOTE[0],
+  'leftButton, rightButton and middleButton are the left, right and middle buttons.' + IS_NOTE[1]], { u: 'https://docs.unity3d.com/Packages/com.unity.inputsystem@1.11/manual/Mouse.html' });
+H('unity_value', ['Unity の値', 'Unity values'], ['マウスの位置、メインカメラ、画面サイズ、ランダムな値など。', 'Mouse position, main camera, screen size, random values and more.'], { u: 'Camera-main' });
 H('color_const', ['色', 'Color'], ['よく使う色。', 'Common colors.'], { u: 'Color' });
 H('color_new', ['色を作る (RGBA)', 'New color (RGBA)'], ['赤・緑・青・不透明度を 0〜1 で指定して色を作ります。', 'Makes a color from red, green, blue and opacity in 0–1.'], { u: 'Color' });
 

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -50,9 +51,9 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        float h = Input.GetAxisRaw("Horizontal");
+        float h = Keyboard.current.dKey.ReadValue() - Keyboard.current.aKey.ReadValue();
         rb.velocity = new Vector2(h * speed, rb.velocity.y);
-        if (Input.GetButtonDown("Jump"))
+        if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 1.1f, groundLayer);
             if (hit.collider != null)
@@ -62,7 +63,7 @@ public class Player : MonoBehaviour
                 animator.Play("Jump");
             }
         }
-        if (Input.GetMouseButtonDown(0))
+        if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             GameObject bullet = Instantiate(bulletPrefab, transform.position, Quaternion.AngleAxis(90, Vector3.forward));
             Destroy(bullet, 2);
@@ -113,7 +114,7 @@ public class Player : MonoBehaviour
             yield return new WaitForSecondsRealtime(1);
             count--;
         }
-        yield return new WaitUntil(() => Input.anyKeyDown);
+        yield return new WaitUntil(() => Keyboard.current.anyKey.wasPressedThisFrame);
         yield return new WaitForEndOfFrame();
         StopAllCoroutines();
         yield break;

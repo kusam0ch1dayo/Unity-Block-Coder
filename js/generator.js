@@ -10,6 +10,7 @@ cs.finish = function (code) {
   if (/\b(List|Dictionary)</.test(code)) usings.unshift('System.Collections.Generic');
   if (/\bIEnumerator\b/.test(code)) usings.unshift('System.Collections');
   if (/\bSceneManager\./.test(code)) usings.push('UnityEngine.SceneManagement');
+  if (/\b(Keyboard|Mouse|Gamepad|Touchscreen)\.current\b/.test(code)) usings.push('UnityEngine.InputSystem');
   if (/\b(Text|Image|Slider|Button|Toggle)\b/.test(code)) usings.push('UnityEngine.UI');
   if (/\b(TextMeshProUGUI|TMP_Text)\b/.test(code)) usings.push('TMPro');
   this.extraUsings.forEach(u => { if (u && !usings.includes(u)) usings.push(u); });
@@ -96,8 +97,9 @@ G.debug_log = b => `Debug.${f(b, 'LEVEL')}(${v(b, 'MSG', O.NONE, '""')});\n`;
 G.vector3_new = b => [`new Vector3(${['X', 'Y', 'Z'].map(k => v(b, k, O.NONE, '0')).join(', ')})`, O.MEMBER];
 G.vector3_const = b => [`Vector3.${f(b, 'DIR')}`, O.MEMBER];
 G.time_value = b => [`Time.${f(b, 'PROP')}`, O.MEMBER];
-G.input_key = b => [`Input.${f(b, 'MODE')}(KeyCode.${f(b, 'KEY')})`, O.MEMBER];
-G.input_axis = b => [`Input.${f(b, 'MODE')}("${f(b, 'AXIS')}")`, O.MEMBER];
+// 入力は新しい Input System (using UnityEngine.InputSystem) で書く
+G.input_key = b => [`Keyboard.current.${isKey(f(b, 'KEY'))}.${IS_MODE[f(b, 'MODE')]}`, O.MEMBER];
+G.input_axis = b => { const c = AXIS_CODE[f(b, 'AXIS')] || AXIS_CODE.Horizontal; return [c, c.includes(' - ') ? O.ADD : O.MEMBER]; };
 G.transform_action = b => `transform.${f(b, 'ACTION')}(${v(b, 'VEC', O.NONE, 'Vector3.zero')});\n`;
 G.transform_set = b => `transform.${f(b, 'PROP')} = ${v(b, 'VALUE', O.ASSIGN, 'Vector3.zero')};\n`;
 G.transform_get = b => [`transform.${f(b, 'PROP')}`, O.MEMBER];
@@ -144,7 +146,7 @@ G.set_active = b => `${v(b, 'OBJ', O.MEMBER, 'gameObject')}.SetActive(${v(b, 'BO
 G.compare_tag = b => [`${v(b, 'OBJ', O.MEMBER, 'gameObject')}.CompareTag(${lit(f(b, 'TAG'))})`, O.MEMBER];
 G.find_object = b => [`GameObject.${f(b, 'FN')}(${lit(f(b, 'NAME'))})`, O.MEMBER];
 G.add_component = b => [`gameObject.AddComponent<${f(b, 'TYPE')}>()`, O.MEMBER];
-G.mouse_button = b => [`Input.${f(b, 'MODE')}(${f(b, 'BTN')})`, O.MEMBER];
+G.mouse_button = b => [`Mouse.current.${MOUSE_BTN[f(b, 'BTN')] || 'leftButton'}.${IS_MODE[f(b, 'MODE')]}`, O.MEMBER];
 G.load_scene = b => `SceneManager.LoadScene(${v(b, 'SCENE', O.NONE, '0')});\n`;
 G.list_insert = b => `${L(b)}.Insert(${v(b, 'INDEX', O.NONE, '0')}, ${v(b, 'VALUE', O.NONE, 'default')});\n`;
 G.list_index_of = b => [`${L(b)}.IndexOf(${v(b, 'VALUE', O.NONE, 'default')})`, O.MEMBER];
@@ -155,10 +157,10 @@ G.dict_contains = b => [`${L(b)}.ContainsKey(${v(b, 'KEY', O.NONE, 'default')})`
 G.dict_remove = b => `${L(b)}.Remove(${v(b, 'KEY', O.NONE, 'default')});\n`;
 
 G.raycast_if = b => block(`if (Physics.Raycast(${v(b, 'ORIGIN', O.NONE, 'transform.position')}, ${v(b, 'DIR', O.NONE, 'transform.forward')}, out RaycastHit ${f(b, 'HIT')}, ${v(b, 'DIST', O.NONE, '100')}))`, b, 'DO');
-G.raycast_mouse_if = b => block(`if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out RaycastHit ${f(b, 'HIT')}, ${v(b, 'DIST', O.NONE, '100')}))`, b, 'DO');
+G.raycast_mouse_if = b => block(`if (Physics.Raycast(Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue()), out RaycastHit ${f(b, 'HIT')}, ${v(b, 'DIST', O.NONE, '100')}))`, b, 'DO');
 G.hit_get = b => [`${f(b, 'HIT')}.${f(b, 'PROP')}`, O.MEMBER];
 G.draw_ray = b => `Debug.DrawRay(${v(b, 'ORIGIN', O.NONE, 'transform.position')}, ${v(b, 'DIR', O.NONE, 'transform.forward')}, ${v(b, 'COLOR', O.NONE, 'Color.red')});\n`;
-G.unity_value = b => [f(b, 'V'), O.MEMBER];
+G.unity_value = b => [uvCode(f(b, 'V')), O.MEMBER];
 G.ui_set_text = b => `${v(b, 'OBJ', O.MEMBER, 'text')}.text = ${v(b, 'VALUE', O.ASSIGN, '""')};\n`;
 G.button_listener = b => `${v(b, 'OBJ', O.MEMBER, 'button')}.onClick.AddListener(${f(b, 'NAME')});\n`;
 G.prop_set = b => `${v(b, 'OBJ', O.MEMBER, 'obj')}.${f(b, 'PROP')} = ${v(b, 'VALUE', O.ASSIGN, 'default')};\n`;
@@ -224,7 +226,7 @@ G.quaternion_lerp = b => [`Quaternion.${f(b, 'FN')}(${v(b, 'A', O.NONE, 'transfo
 G.quaternion_look = b => [`Quaternion.LookRotation(${v(b, 'DIR', O.NONE, 'Vector3.forward')})`, O.MEMBER];
 G.quaternion_axis = b => [`Quaternion.AngleAxis(${v(b, 'ANGLE', O.NONE, '0')}, ${v(b, 'AXIS', O.NONE, 'Vector3.up')})`, O.MEMBER];
 G.color_new = b => { const a = v(b, 'A', O.NONE); return [`new Color(${['R', 'G', 'B'].map(k => v(b, k, O.NONE, '0')).join(', ')}${a ? ', ' + a : ''})`, O.MEMBER]; };
-G.input_button = b => [`Input.${f(b, 'MODE')}(${lit(f(b, 'NAME'))})`, O.MEMBER];
+G.input_button = b => [`${BUTTON_CODE[f(b, 'NAME')] || BUTTON_CODE.Jump}.${IS_MODE[f(b, 'MODE')]}`, O.MEMBER];
 G.instantiate_one = b => [`Instantiate(${v(b, 'PREFAB', O.NONE, 'null')})`, O.MEMBER];
 G.instantiate_rot = b => [`Instantiate(${v(b, 'PREFAB', O.NONE, 'null')}, ${v(b, 'POS', O.NONE, 'Vector3.zero')}, ${v(b, 'ROT', O.NONE, 'Quaternion.identity')})`, O.MEMBER];
 G.dont_destroy = b => `DontDestroyOnLoad(${v(b, 'OBJ', O.NONE, 'gameObject')});\n`;

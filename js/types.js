@@ -6,7 +6,7 @@ const COMPONENTS = ['Transform', 'Rigidbody', 'Rigidbody2D', 'Collider', 'BoxCol
   'Collider2D', 'BoxCollider2D', 'CircleCollider2D'];
 const UNITY_TYPES = ['Vector2', 'Vector3', 'Quaternion', 'Color', 'GameObject', 'Component', 'Collision', 'Material', 'Sprite', 'KeyCode',
   'MonoBehaviour', 'ScriptableObject', 'IEnumerator', 'ForceMode', 'RaycastHit', 'Ray', 'AudioClip', 'RaycastHit2D', 'Collision2D', 'PhysicsMaterial2D', 'ContactFilter2D', 'LayerMask', ...COMPONENTS];
-const KEYS = ['Space', 'Return', 'Escape', 'LeftShift', 'W', 'A', 'S', 'D', 'UpArrow', 'DownArrow', 'LeftArrow', 'RightArrow', 'Mouse0'];
+const KEYS = INPUT_KEYS;
 const COMP = { name: 'string', tag: 'string', transform: 'Transform', gameObject: 'GameObject', 'CompareTag()': 'bool', 'GetComponent()': '?' };
 const MEMBERS = {
   Vector3: { x: 'float', y: 'float', z: 'float', magnitude: 'float', normalized: 'Vector3' },
@@ -54,7 +54,7 @@ const STATICS = {
     'Distance()': 'float', 'Lerp()': 'Vector3', 'Dot()': 'float', 'Cross()': 'Vector3' },
   Vector2: { zero: 'Vector2', one: 'Vector2', up: 'Vector2', down: 'Vector2', left: 'Vector2', right: 'Vector2', 'Distance()': 'float', 'Lerp()': 'Vector2' },
   Quaternion: { identity: 'Quaternion', 'Euler()': 'Quaternion', 'LookRotation()': 'Quaternion' },
-  Input: { 'GetKey()': 'bool', 'GetKeyDown()': 'bool', 'GetKeyUp()': 'bool', 'GetAxis()': 'float', 'GetMouseButtonDown()': 'bool', mousePosition: 'Vector3' },
+  Keyboard: { current: 'Keyboard' }, Mouse: { current: 'Mouse' }, Gamepad: { current: 'Gamepad' }, Touchscreen: { current: 'Touchscreen' },
   Debug: { 'Log()': 'void', 'LogWarning()': 'void', 'LogError()': 'void' },
   Random: { 'Range()': 'float', value: 'float' },
   KeyCode: Object.fromEntries(KEYS.map(k => [k, 'KeyCode'])),
@@ -80,8 +80,17 @@ const MONO = { ...COMP, enabled: 'bool', 'Invoke()': 'void', 'InvokeRepeating()'
 Object.assign(STATICS.Mathf, { Infinity: 'float', NegativeInfinity: 'float', Deg2Rad: 'float', Rad2Deg: 'float', Epsilon: 'float', 'Approximately()': 'bool' },
   Object.fromEntries([...MATH1, ...MATH2, ...MATH3].map(n => [n + '()', /ToInt$/.test(n) ? 'int' : 'float'])));
 Object.assign(STATICS.Random, { insideUnitCircle: 'Vector2', insideUnitSphere: 'Vector3', onUnitSphere: 'Vector3', rotation: 'Quaternion' });
-Object.assign(STATICS.Input, { anyKey: 'bool', anyKeyDown: 'bool', touchCount: 'int', 'GetAxisRaw()': 'float', 'GetButton()': 'bool', 'GetButtonDown()': 'bool',
-  'GetButtonUp()': 'bool', 'GetMouseButton()': 'bool', 'GetMouseButtonUp()': 'bool', 'GetTouch()': '?' });
+// 新しい Input System (UnityEngine.InputSystem) の補完と型
+{
+  const btn = { isPressed: 'bool', wasPressedThisFrame: 'bool', wasReleasedThisFrame: 'bool', 'ReadValue()': 'float' };
+  MEMBERS.KeyControl = btn; MEMBERS.ButtonControl = btn; MEMBERS.AxisControl = { 'ReadValue()': 'float' };
+  MEMBERS.Vector2Control = { 'ReadValue()': 'Vector2', x: 'AxisControl', y: 'AxisControl' };
+  MEMBERS.Keyboard = { anyKey: 'KeyControl', ...Object.fromEntries(INPUT_KEYS.map(k => [isKey(k), 'KeyControl'])) };
+  MEMBERS.Mouse = { position: 'Vector2Control', delta: 'Vector2Control', scroll: 'Vector2Control', leftButton: 'ButtonControl', rightButton: 'ButtonControl', middleButton: 'ButtonControl' };
+  MEMBERS.Gamepad = { leftStick: 'Vector2Control', rightStick: 'Vector2Control', dpad: 'Vector2Control', leftTrigger: 'ButtonControl', rightTrigger: 'ButtonControl',
+    ...Object.fromEntries(['buttonSouth', 'buttonEast', 'buttonWest', 'buttonNorth', 'startButton', 'selectButton', 'leftShoulder', 'rightShoulder'].map(b => [b, 'ButtonControl'])) };
+  MEMBERS.Touchscreen = { primaryTouch: 'TouchControl' }; MEMBERS.TouchControl = { press: 'ButtonControl', position: 'Vector2Control' };
+}
 Object.assign(STATICS.Quaternion, { 'Slerp()': 'Quaternion', 'Lerp()': 'Quaternion', 'RotateTowards()': 'Quaternion', 'AngleAxis()': 'Quaternion', 'Inverse()': 'Quaternion' });
 Object.assign(STATICS.Time, { frameCount: 'int', realtimeSinceStartup: 'float' });
 Object.assign(STATICS.Vector3, { 'MoveTowards()': 'Vector3', 'Normalize()': 'Vector3', 'Angle()': 'float', 'ClampMagnitude()': 'Vector3', 'Slerp()': 'Vector3', 'Reflect()': 'Vector3' });

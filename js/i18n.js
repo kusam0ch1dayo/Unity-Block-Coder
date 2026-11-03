@@ -56,7 +56,9 @@ const I18N = {
   'コメント・属性': 'Comments & Attributes', 'ゲーム開始': 'Game start', '所持数: ': 'Items: ', 'スコア: ': 'Score: ', 'Tooltip("説明")': 'Tooltip("Description")',
   'Header("設定")': 'Header("Settings")', 'コメント': 'Comment',
   // ---- ブロック
-  '(なし)': '(none)', '0 (左)': '0 (left)', '1 (右)': '1 (right)', '2 (中)': '2 (middle)', '0〜1 の値。A (不透明度) は省略可': 'Values from 0 to 1. A (opacity) is optional',
+  '(なし)': '(none)', '0 (左)': '0 (left)', '左右 (A / D) の軸': 'left / right (A / D) axis', '上下 (W / S) の軸': 'up / down (W / S) axis',
+  '左右 (← / →) の軸': 'left / right (← / →) axis', '上下 (↑ / ↓) の軸': 'up / down (↑ / ↓) axis', 'マウスの左右の動き の軸': 'mouse left / right movement',
+  'マウスの上下の動き の軸': 'mouse up / down movement', 'スペース の軸': 'space key axis', 'ボタン %2 . %1': 'button %2 . %1', '1 (右)': '1 (right)', '2 (中)': '2 (middle)', '0〜1 の値。A (不透明度) は省略可': 'Values from 0 to 1. A (opacity) is optional',
   'C# メンバー %1': 'C# member %1', 'C# 式 %1': 'C# expr %1', 'C# 文 %1': 'C# stmt %1', 'Destroy( %1 ) 遅延 %2 秒': 'Destroy( %1 ) after %2 s',
   'Invoke( %1 , %2 秒後 )': 'Invoke( %1 , after %2 s )', 'InvokeRepeating( %1 , %2 秒後から %3 秒ごと )': 'InvokeRepeating( %1 , start %2 s, every %3 s )',
   'PlayerPrefs. %1 ( %2 , 既定値 %3 )': 'PlayerPrefs. %1 ( %2 , default %3 )', 'Text / TextMeshProUGUI の文字を変更': 'Change the text of a Text / TextMeshProUGUI',
@@ -137,7 +139,7 @@ const I18N = {
   '読み込めない部分を省略しました: {0}': 'An unreadable part was omitted: {0}', '逐語的文字列 @"..."': 'verbatim string @"..."', '配列の生成 new T[]': 'array creation new T[]', '配列の生成 new[] { }': 'array creation new[] { }',
   // ---- テンプレート
   '2D プレイヤー移動': '2D player movement', '左右移動とジャンプ (Rigidbody2D + 接地判定)': 'Move left/right and jump (Rigidbody2D + ground check)',
-  '3D プレイヤー移動': '3D player movement', '前後移動と左右回転 (矢印キー / WASD)': 'Move forward/back and turn (arrow keys / WASD)', 'カメラ追従': 'Camera follow',
+  '3D プレイヤー移動': '3D player movement', '前後移動と左右回転 (WASD)': 'Move forward/back and turn (WASD)', 'カメラ追従': 'Camera follow',
   'ターゲットをなめらかに追いかけるカメラ': 'A camera that smoothly follows a target', '敵の生成': 'Enemy spawner', '一定間隔でランダムな位置にプレハブを出す': 'Spawn a prefab at random positions at intervals',
   '体力 (HP)': 'Health (HP)', 'ダメージ・HP バー (Slider)・倒れたら消える': 'Damage, HP bar (Slider), disappear when defeated', 'スコア管理': 'Score manager',
   'シングルトン・スコア表示・ハイスコア保存': 'Singleton, score display, saved high score', '弾': 'Bullet', 'まっすぐ飛んで、敵に当たったら消える': 'Flies straight and disappears when it hits an enemy',
